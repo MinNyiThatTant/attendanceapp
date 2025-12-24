@@ -1,4 +1,4 @@
-# Student Attendance System
+# Student Attendance System Using Raspberry Pi
 
 PHP, HTML, CSS, JavaScript နှင့် MySQL တို့ကို အသုံးပြု၍ ရေးသားထားသော System တစ်ခု ဖြစ်သည်။
 
@@ -52,3 +52,7 @@ if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
 ?>
+```
+
+
+### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖေ်ပြပါမည်။ (comming soon)
