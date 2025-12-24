@@ -35,7 +35,7 @@ Download ရလာသော `attendanceapp` Folder ကို XAMPP ထည့်�
 
 
 ### ၄။ Database ချိတ်ဆက်မှု စစ်ဆေးခြင်း
-`config.php` သို့မဟုတ် database connection ဖိုင်တွင် အောက်ပါအတိုင်း Host, User, Password နှင့် Database အမည်များ မှန်/မမှန် စစ်ဆေးပါ။
+database connection ဖိုင်တွင် အောက်ပါအတိုင်း Host, User, Password နှင့် Database အမည်များ မှန်/မမှန် စစ်ဆေးပါ။
 
 ```php
 <?php
@@ -43,16 +43,6 @@ $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "attendance_db";
-
-// Connection တည်ဆောက်ခြင်း
-$conn = mysqli_connect($servername, $username, $password, $dbname);
-
-// Connection စစ်ဆေးခြင်း
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-?>
 ```
-
 
 ### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖော်ပြပါမည်။ (comming soon)
