@@ -55,4 +55,4 @@ if (!$conn) {
 ```
 
 
-### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖေ်ပြပါမည်။ (comming soon)
+### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖော်ပြပါမည်။ (comming soon)
