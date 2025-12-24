@@ -8,7 +8,7 @@ if (isset($_POST['register'])) {
     $student_id = $_POST['student_id'];
     $course_id = $_POST['course_id'];
 
-    // reterive (session_id) from course_details
+    // retrieve (session_id) from course_details
     $stmt_sess = $db->conn->prepare("SELECT session_id FROM course_details WHERE id = ?");
     $stmt_sess->execute([$course_id]);
     $session_id = $stmt_sess->fetchColumn();
@@ -16,31 +16,41 @@ if (isset($_POST['register'])) {
     $sql = "INSERT INTO course_registration (student_id, course_id, session_id) VALUES (?, ?, ?)";
     $db->conn->prepare($sql)->execute([$student_id, $course_id, $session_id]);
     header("Location: manage_registration.php");
+    exit();
 }
 
 // Unregister
 if (isset($_GET['delete'])) {
     $db->conn->prepare("DELETE FROM course_registration WHERE id = ?")->execute([$_GET['delete']]);
     header("Location: manage_registration.php");
+    exit();
 }
 
+// Student details တွင် current_semester column ပါရပါမည်
 $students = $db->conn->query("SELECT * FROM student_details ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
-$courses = $db->conn->query("SELECT cd.*, sd.term FROM course_details cd JOIN session_details sd ON cd.session_id = sd.id")->fetchAll(PDO::FETCH_ASSOC);
+
+// Course assignments နှင့် session term ကို တွဲယူခြင်း
+$courses = $db->conn->query("
+    SELECT cd.*, sd.term, 
+    (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors 
+    FROM course_details cd 
+    JOIN session_details sd ON cd.session_id = sd.id
+")->fetchAll(PDO::FETCH_ASSOC);
+
 $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title as course_name, cd.code, sess.term 
     FROM course_registration cr 
     JOIN student_details sd ON cr.student_id = sd.id 
     JOIN course_details cd ON cr.course_id = cd.id
-    JOIN session_details sess ON cr.session_id = sess.id")->fetchAll(PDO::FETCH_ASSOC);
+    JOIN session_details sess ON cr.session_id = sess.id
+    ORDER BY cr.id DESC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Course Registration</title>
     <link rel="stylesheet" href="css/attendance.css">
 </head>
-
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -48,17 +58,18 @@ $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title a
             <a href="dashboard.php" class="logout-btn" style="text-decoration:none;">⬅ Back</a>
         </header>
 
-        // Registration Form ပိုင်း
         <div class="card" style="margin-bottom:20px;">
             <h3>Register Student to Course</h3>
             <form method="POST" id="regForm">
                 <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:10px;">
-
+                    
                     <select name="student_id" id="student_id" required onchange="filterCourses()" style="padding:10px;">
                         <option value="">-- Select Student --</option>
                         <?php foreach ($students as $s): ?>
-                            <option value="<?= $s['id'] ?>" data-major="<?= $s['major_id'] ?>">
-                                <?= $s['name'] ?> (<?= $s['roll_no'] ?>)
+                            <option value="<?= $s['id'] ?>" 
+                                    data-major="<?= $s['major_id'] ?>" 
+                                    data-semester="<?= $s['current_semester'] ?>">
+                                <?= $s['name'] ?> (<?= $s['roll_no'] ?>) - <?= $s['current_semester'] ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -66,7 +77,9 @@ $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title a
                     <select name="course_id" id="course_id" required style="padding:10px;">
                         <option value="">-- Select Course --</option>
                         <?php foreach ($courses as $c): ?>
-                            <option value="<?= $c['id'] ?>" data-major="<?= $c['major_id'] ?>">
+                            <option value="<?= $c['id'] ?>" 
+                                    data-majors="<?= $c['assigned_majors'] ?>" 
+                                    data-semester="<?= $c['term'] ?>">
                                 <?= $c['code'] ?> - <?= $c['title'] ?> (<?= $c['term'] ?>)
                             </option>
                         <?php endforeach; ?>
@@ -82,25 +95,32 @@ $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title a
                 var studentSelect = document.getElementById('student_id');
                 var courseSelect = document.getElementById('course_id');
 
-                // take major selected ID of student
-                var selectedStudentMajor = studentSelect.options[studentSelect.selectedIndex].getAttribute('data-major');
+                if (studentSelect.value === "") {
+                    courseSelect.value = "";
+                    return;
+                }
 
-                // loop Courses
+                var selectedOption = studentSelect.options[studentSelect.selectedIndex];
+                var selectedMajor = String(selectedOption.getAttribute('data-major'));
+                var selectedSem = String(selectedOption.getAttribute('data-semester'));
+
                 for (var i = 0; i < courseSelect.options.length; i++) {
                     var option = courseSelect.options[i];
-                    var courseMajor = option.getAttribute('data-major');
+                    if (option.value === "") continue;
 
-                    if (option.value === "") continue; 
+                    var assignedMajorsStr = option.getAttribute('data-majors') || "";
+                    var courseSem = option.getAttribute('data-semester');
 
-                    // check major
-                    if (courseMajor === selectedStudentMajor) {
+                    var majorsArray = assignedMajorsStr.split(',');
+
+                    // Major List ထဲမှာ ကျောင်းသား Major ပါရမည် ဖြစ်သလို Semester လည်း တူရမည်
+                    if (majorsArray.includes(selectedMajor) && courseSem === selectedSem) {
                         option.style.display = 'block';
                     } else {
                         option.style.display = 'none';
                     }
                 }
-                // reset course
-                courseSelect.value = "";
+                courseSelect.value = ""; 
             }
         </script>
 
@@ -128,5 +148,4 @@ $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title a
         </div>
     </div>
 </body>
-
 </html>

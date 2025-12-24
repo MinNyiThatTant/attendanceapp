@@ -17,19 +17,26 @@ $course_id = $_GET['course_id'] ?? '';
 
 // reterive subject which are selected Major and Semester 
 // in course_details (major_id, session_id)
-$stmt_sub = $conn->prepare("SELECT cd.* FROM course_details cd 
-    JOIN session_details sd ON cd.session_id = sd.id 
-    WHERE sd.term = :sem AND cd.major_id = :mid");
+$stmt_sub = $conn->prepare("
+    SELECT cd.* FROM course_details cd 
+    INNER JOIN course_assignments ca ON cd.id = ca.course_id 
+    INNER JOIN session_details sd ON cd.session_id = sd.id 
+    WHERE sd.term = :sem 
+    AND ca.major_id = :mid
+");
 $stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
 $subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
-
 // reterive Major Students
 $students = [];
 if ($course_id) {
     // take Major student from course_registration
-    $stmt_std = $conn->prepare("SELECT sd.* FROM student_details sd 
+    $stmt_std = $conn->prepare("
+        SELECT sd.* FROM student_details sd 
         JOIN course_registration cr ON sd.id = cr.student_id 
-        WHERE cr.course_id = :cid AND sd.major_id = :mid");
+        WHERE cr.course_id = :cid 
+        AND sd.major_id = :mid
+        ORDER BY sd.roll_no ASC
+    ");
     $stmt_std->execute([':cid' => $course_id, ':mid' => $major_id]);
     $students = $stmt_std->fetchAll(PDO::FETCH_ASSOC);
 }
