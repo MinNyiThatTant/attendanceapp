@@ -39,7 +39,7 @@ database connection ဖိုင်တွင် အောက်ပါအတိ�
 
 ```php
 <?php
-$servername = "localhost";
+$servername = "localhost"; // may be sometime you should put 172.0.0.1:3306 or 172.0.0.1:3307 (depand on port of xampp you used)
 $username = "root";
 $password = "";
 $dbname = "attendance_db";
