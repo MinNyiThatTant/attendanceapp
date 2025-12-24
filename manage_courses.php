@@ -4,14 +4,14 @@ require_once 'database/database.php';
 $db = new Database();
 
 $edit_course = null;
-$assigned_majors = []; // Edit အတွက်
+$assigned_majors = []; // Edit 
 
 // --- DELETE LOGIC ---
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    // Bridge table ထဲက data အရင်ဖျက်ပါ
+    
     $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$id]);
-    // Course ကိုဖျက်ပါ
+    
     $db->conn->prepare("DELETE FROM course_details WHERE id = ?")->execute([$id]);
     header("Location: manage_courses.php?msg=deleted");
     exit();
@@ -24,10 +24,10 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$id]);
     $edit_course = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // ဒီ Course ကို ဘယ် Major တွေအတွက် assign လုပ်ထားသလဲဆိုတာ ဆွဲထုတ်ယူခြင်း
+    // course => assign for major
     $stmt_m = $db->conn->prepare("SELECT major_id FROM course_assignments WHERE course_id = ?");
     $stmt_m->execute([$id]);
-    $assigned_majors = $stmt_m->fetchAll(PDO::FETCH_COLUMN); // [1, 2, 5] စသဖြင့် Array ထွက်လာမည်
+    $assigned_majors = $stmt_m->fetchAll(PDO::FETCH_COLUMN); 
 }
 
 // --- ADD or UPDATE LOGIC ---
@@ -44,7 +44,7 @@ if (isset($_POST['save_course'])) {
         $sql = "UPDATE course_details SET code=?, title=?, credits=?, session_id=? WHERE id=?";
         $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $course_id]);
 
-        // Assignment ဟောင်းတွေကို ဖျက်ပြီး အသစ်ပြန်ထည့်ခြင်း
+        
         $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$course_id]);
         $new_id = $course_id;
     } else {
@@ -54,7 +54,7 @@ if (isset($_POST['save_course'])) {
         $new_id = $db->conn->lastInsertId();
     }
 
-    // Bridge table ထဲသို့ Major များထည့်ခြင်း
+    //to course_assigmnets (course,major)
     foreach ($major_ids as $m_id) {
         $db->conn->prepare("INSERT INTO course_assignments (course_id, major_id) VALUES (?, ?)")
             ->execute([$new_id, $m_id]);
@@ -63,11 +63,11 @@ if (isset($_POST['save_course'])) {
     exit();
 }
 
-// Data fetching for UI
+// data fetch
 $sessions = $db->conn->query("SELECT * FROM session_details")->fetchAll(PDO::FETCH_ASSOC);
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
 
-// Table အတွက် Query (GROUP_CONCAT သုံးပြီး Major နာမည်များကို စုပြမည်)
+// show major with Group
 $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as major_names 
                              FROM course_details cd 
                              LEFT JOIN session_details sd ON cd.session_id = sd.id
@@ -189,16 +189,16 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
 
     <script>
         document.getElementById('selectAllMajors').addEventListener('change', function() {
-            // အောက်က major checkbox အားလုံးကို ယူမယ်
+            // major checkbox
             const checkboxes = document.querySelectorAll('.major-checkbox');
 
-            // Select All ရဲ့ အခြေအနေ (Checked ဖြစ်လား၊ မဖြစ်လား) အတိုင်း အကုန်လိုက်ပြောင်းမယ်
+            // Select All 
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
 
-        // အကယ်၍ checkbox တစ်ခုချင်းစီကို လိုက်ဖြုတ်ရင် Select All ကလည်း auto ပြန်ဖြုတ်ပေးဖို့ (Optional)
+        
         const majorCheckboxes = document.querySelectorAll('.major-checkbox');
         majorCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {

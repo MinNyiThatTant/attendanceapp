@@ -26,10 +26,10 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// Student details တွင် current_semester column ပါရပါမည်
+// Student details (current_semester )
 $students = $db->conn->query("SELECT * FROM student_details ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
-// Course assignments နှင့် session term ကို တွဲယူခြင်း
+// Course assignments and session term 
 $courses = $db->conn->query("
     SELECT cd.*, sd.term, 
     (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors 
@@ -113,7 +113,7 @@ $registrations = $db->conn->query("SELECT cr.id, sd.name, sd.roll_no, cd.title a
 
                     var majorsArray = assignedMajorsStr.split(',');
 
-                    // Major List ထဲမှာ ကျောင်းသား Major ပါရမည် ဖြစ်သလို Semester လည်း တူရမည်
+                    // Major students && course semester
                     if (majorsArray.includes(selectedMajor) && courseSem === selectedSem) {
                         option.style.display = 'block';
                     } else {

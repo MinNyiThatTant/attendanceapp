@@ -8,7 +8,7 @@ if (isset($_POST['upload_csv'])) {
     if ($_FILES['csv_file']['size'] > 0) {
         $file = fopen($filename, "r");
         
-        // ပထမစာကြောင်း (Header) ကို ကျော်ရန်
+        // over header
         fgetcsv($file);
 
         while (($column = fgetcsv($file, 1000, ",")) !== FALSE) {

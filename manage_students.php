@@ -24,7 +24,7 @@ if (isset($_POST['save_student'])) {
     $roll = $_POST['roll_no'];
     $name = $_POST['name'];
     $major_id = $_POST['major_id'];
-    $current_semester = $_POST['current_semester']; // Semester အသစ်ယူခြင်း
+    $current_semester = $_POST['current_semester']; // new semester
     $student_id = $_POST['student_id'];
 
     if ($student_id) {
@@ -39,7 +39,7 @@ if (isset($_POST['save_student'])) {
 }
 
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
-// Semester စာရင်းကို session_details ထဲမှ ယူခြင်း
+// get semester list from session_details
 $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetchAll(PDO::FETCH_ASSOC);
 
 $students = $db->conn->query("SELECT sd.*, md.title as major_name FROM student_details sd LEFT JOIN major_details md ON sd.major_id = md.id")->fetchAll(PDO::FETCH_ASSOC);
