@@ -1,0 +1,118 @@
+*
+{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+
+}
+
+body{
+    width: 100%;
+    height: 100vh;
+    background-color: aquamarine;
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+
+}
+
+.loginform{
+    width: 400px;
+    height: 400px;
+    background-color: white;
+    border-color: aliceblue;
+    border:solid 2px blue;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 2s;
+}
+
+.loginform:hover
+{
+    box-shadow: 0 0 40px 0px blue;
+}
+
+.inputgroup
+{
+    position: relative;
+}
+
+.inputgroup input
+{
+    width: 300px;
+    height: 40px;
+    margin: 10px 0;
+    padding: 0 10px;
+    border: solid 1px gray;
+    border-radius: 5px;
+    font-size: 16px;
+
+    transition: all 200ms;
+}
+
+.inputgroup label
+{
+    position: absolute;
+    /* top: -10px; */
+    /* left: 10px; */
+    background-color: white;
+    padding: 0 5px;
+    font-size: 14px;
+    color: gray;
+    transition: all 200ms;
+}   
+
+.inputgroup:focus-within label {
+    transform: translateY(-20px);
+    color: blue;
+}
+
+.topmargin
+{
+    margin-top: 50px;
+}
+
+
+.divcallforaction
+{
+    margin-top: 30px;
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    flex-direction: column;
+    height: 45px;
+    width: 100%;
+}
+
+.btnlogin
+{
+    width: 150px;
+    height: 45px;
+    padding: 5px;
+    background-color: darkblue;
+    color: white;
+    border: solid 1px darkblue;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 200ms;
+}
+
+.inactivecolor
+{
+    background-color: gray;
+    border-color: gray;
+    cursor: not-allowed;
+}
+
+.activecolor
+{
+    background-color: darkblue;
+    border-color: darkblue;
+    cursor: pointer;
+}
