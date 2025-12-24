@@ -1,128 +1,127 @@
 <?php
 session_start();
-// User Login စစ်ဆေးခြင်း
+require_once 'database/database.php';
 if (empty($_SESSION["current_user"])) {
     header('Location: login.php');
     exit;
 }
 
-// URL ကနေပို့လိုက်တဲ့ Major ကိုယူခြင်း (ဥပမာ - attendance.php?major=CEIT)
-$major = isset($_GET['major']) ? $_GET['major'] : 'Major Not Selected';
-?>
+$db = new Database();
+$conn = $db->conn;
 
+// access data from url
+$major_id = $_GET['major_id'] ?? '';
+$major_name = $_GET['major_name'] ?? 'Major';
+$semester = $_GET['semester'] ?? '1st semester';
+$course_id = $_GET['course_id'] ?? '';
+
+// reterive subject which are selected Major and Semester 
+// in course_details (major_id, session_id)
+$stmt_sub = $conn->prepare("SELECT cd.* FROM course_details cd 
+    JOIN session_details sd ON cd.session_id = sd.id 
+    WHERE sd.term = :sem AND cd.major_id = :mid");
+$stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
+$subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
+
+// reterive Major Students
+$students = [];
+if ($course_id) {
+    // take Major student from course_registration
+    $stmt_std = $conn->prepare("SELECT sd.* FROM student_details sd 
+        JOIN course_registration cr ON sd.id = cr.student_id 
+        WHERE cr.course_id = :cid AND sd.major_id = :mid");
+    $stmt_std->execute([':cid' => $course_id, ':mid' => $major_id]);
+    $students = $stmt_std->fetchAll(PDO::FETCH_ASSOC);
+}
+?>
 <!DOCTYPE html>
 <html lang="my">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $major; ?> - Attendance System</title>
+    <title>Attendance - <?= $major_name ?></title>
     <link rel="stylesheet" href="css/attendance.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
+    <div class="container">
+        <header class="attendance-header">
+            <h1><?= $major_name ?> <small style="font-size: 1.2rem; color: #666;">(<?= $semester ?>)</small></h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="dashboard.php" class="class-btn" style="background: #6b7280; color: white; text-decoration: none;">⬅ Dashboard</a>
+                <span>📅 <?= date('d-m-Y') ?></span>
+                <button class="logout-btn" id="btnlogout">Logout</button>
+            </div>
+        </header>
 
-<div class="container">
-    <header class="attendance-header">
-        <div class="attendance-brand">
-            <h1><?php echo $major; ?><span style="color:#1f2937"> Attendance</span></h1>
+        <div class="filter-section">
+            <?php for ($i = 1; $i <= 10; $i++):
+                $sem = ($i == 1) ? "1st semester" : (($i == 2) ? "2nd semester" : $i . "th semester");
+                $active = ($semester == $sem) ? "active" : "";
+            ?>
+                <a href="attendance.php?major_id=<?= $major_id ?>&major_name=<?= $major_name ?>&semester=<?= $sem ?>" class="class-btn <?= $active ?>"><?= $sem ?></a>
+            <?php endfor; ?>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="dashboard.php" style="text-decoration: none; font-size: 0.9rem; color: var(--primary);">Back to Dashboard</a>
-            <button class="logout-btn" id="btnlogout">Logout</button>
-        </div>
-    </header>
 
-    <div class="filter-section">
-        <div class="session-box">
-            <select>
-                <option>Session: 2023-2024</option>
-                <option>Session: 2024-2025</option>
+        <div class="card" style="margin-bottom:20px;">
+            <label style="font-weight: bold;">Select Subject: </label>
+            <select onchange="location = this.value;" style="padding: 8px; width: 100%;">
+                <option value="">-- Choose Subject (Total: <?= count($subjects) ?>) --</option>
+                <?php if (!empty($subjects)): ?>
+                    <?php foreach ($subjects as $s): ?>
+                        <option value="attendance.php?major_id=<?= $major_id ?>&major_name=<?= $major_name ?>&semester=<?= $semester ?>&course_id=<?= $s['id'] ?>" <?= ($course_id == $s['id']) ? 'selected' : '' ?>>
+                            <?= $s['code'] ?> - <?= $s['title'] ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <option disabled>No subjects found for this semester</option>
+                <?php endif; ?>
             </select>
         </div>
-        <button class="class-btn active">1st Year</button>
-        <button class="class-btn">2nd Year</button>
-        <button class="class-btn">3rd Year</button>
-        <button class="class-btn">4th Year</button>
-        <button class="class-btn">5th Year</button>
-        <button class="class-btn">6th Year</button>
+
+        <form action="save_attendance.php" method="POST">
+            <input type="hidden" name="course_id" value="<?= $course_id ?>">
+            <input type="hidden" name="major_id" value="<?= $major_id ?>">
+
+            <div class="card">
+                <?php if ($course_id && empty($students)): ?>
+                    <p style="text-align: center; color: #ef4444; padding: 20px;">ဤဘာသာရပ်တွင် စာရင်းသွင်းထားသော ကျောင်းသား မရှိသေးပါ။</p>
+                <?php elseif (!$course_id): ?>
+                    <p style="text-align: center; color: #6b7280; padding: 20px;">ကျောင်းသားစာရင်း မြင်ရရန် ဘာသာရပ်ကို အရင်ရွေးချယ်ပါ။</p>
+                <?php else: ?>
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name & Roll No</th>
+                                <th style="text-align: center;">Present</th>
+                                <th style="text-align: center;">Absent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($students as $st): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= $st['name'] ?></strong><br>
+                                        <small style="color: #666;"><?= $st['roll_no'] ?></small>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="radio" name="status[<?= $st['id'] ?>]" value="present" checked style="transform: scale(1.5);">
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="radio" name="status[<?= $st['id'] ?>]" value="absent" style="transform: scale(1.5);">
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <button type="submit" class="save-btn" style="width: 100%; margin-top: 20px; font-size: 1.1rem;">Save Attendance</button>
+                <?php endif; ?>
+            </div>
+        </form>
     </div>
 
-    <div class="main-grid">
-        
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <span class="card-title">Student Attendance List</span>
-                <span style="font-size:0.8rem; color:var(--text-muted)">Total: 3 Students</span>
-            </div>
-            
-            <form action="save_attendance.php" method="POST">
-                <table class="student-table">
-                    <thead>
-                        <tr>
-                            <th>Student Information</th>
-                            <th style="text-align:center">Present</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="std-info">
-                                <span style="font-weight:600">Aung Aung</span>
-                                <span class="std-id">ID: STD-001</span>
-                            </td>
-                            <td style="text-align:center">
-                                <input type="checkbox" name="att[]" value="STD-001" style="transform:scale(1.3); cursor:pointer;">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="std-info">
-                                <span style="font-weight:600">Maung Maung</span>
-                                <span class="std-id">ID: STD-002</span>
-                            </td>
-                            <td style="text-align:center">
-                                <input type="checkbox" name="att[]" value="STD-002" style="transform:scale(1.3); cursor:pointer;">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="std-info">
-                                <span style="font-weight:600">Su Su</span>
-                                <span class="std-id">ID: STD-003</span>
-                            </td>
-                            <td style="text-align:center">
-                                <input type="checkbox" name="att[]" value="STD-003" style="transform:scale(1.3); cursor:pointer;">
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <button type="submit" class="save-btn">Save Attendance Records</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <span class="card-title">Subjects Today</span>
-            <div class="subjects-grid" style="grid-template-columns: 1fr;">
-                <div class="subject-card">
-                    <span class="subject-code">CS-101</span>
-                    <span class="subject-name">Web Development</span>
-                    <span class="subject-time">Mon, 09:00 AM</span>
-                </div>
-                <div class="subject-card">
-                    <span class="subject-code">CS-102</span>
-                    <span class="subject-name">Database System</span>
-                    <span class="subject-time">Tue, 10:30 AM</span>
-                </div>
-                <div class="subject-card">
-                    <span class="subject-code">CS-103</span>
-                    <span class="subject-name">UI/UX Design</span>
-                    <span class="subject-time">Wed, 01:00 PM</span>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="js/logout.js"></script>
-
+    <script src="js/jquery.js"></script>
+    <script src="js/logout.js"></script>
 </body>
+
 </html>
