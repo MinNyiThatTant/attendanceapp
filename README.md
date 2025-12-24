@@ -31,7 +31,6 @@ Download ရလာသော `attendanceapp` Folder ကို XAMPP ထည့်�
 2.  Browser တွင် `localhost/phpmyadmin` သို့သွားပါ။
 
 3.  Database အသစ်တစ်ခု တည်ဆောက်ပါ (အမည်: `attendance_db`)။
-4.  **Import** tab ကိုနှိပ်ပြီး Project ထဲတွင် ပါဝင်သော `.sql` ဖိုင် (ဥပမာ- `database/attendance_db.sql`) ကို ရွေးချယ်ကာ **Go** ကို နှိပ်ပါ။
 
 
 ### ၄။ Database ချိတ်ဆက်မှု စစ်ဆေးခြင်း
