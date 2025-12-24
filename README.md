@@ -30,7 +30,7 @@ Download ရလာသော `attendanceapp` Folder ကို XAMPP ထည့်�
 1.  **XAMPP Control Panel** ကိုဖွင့်ပြီး **Apache** နှင့် **MySQL** ကို Start လုပ်ပါ။
 2.  Browser တွင် `localhost/phpmyadmin` သို့သွားပါ။
 
-3.  Database အသစ်တစ်ခု တည်ဆောက်ပါ (အမည်: `attendance_db`)။
+3.  Database အသစ်တစ်ခု တည်ဆောက်ပါ (`attendance_db`)။
 
 
 ### ၄။ Database ချိတ်ဆက်မှု စစ်ဆေးခြင်း
