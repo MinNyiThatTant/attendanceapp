@@ -1,134 +1,129 @@
 <?php
 session_start();
 require_once 'database/database.php';
-if (empty($_SESSION["current_user"])) {
-    header('Location: login.php');
-    exit;
-}
+if (empty($_SESSION["current_user"])) { header('Location: login.php'); exit; }
 
 $db = new Database();
 $conn = $db->conn;
 
-// access data from url
 $major_id = $_GET['major_id'] ?? '';
 $major_name = $_GET['major_name'] ?? 'Major';
-$semester = $_GET['semester'] ?? '1st semester';
+$semester = $_GET['semester'] ?? '';
 $course_id = $_GET['course_id'] ?? '';
 
-// reterive subject which are selected Major and Semester 
-// in course_details (major_id, session_id)
+// reterive all semesters
+$sem_stmt = $conn->query("SELECT DISTINCT term FROM session_details ORDER BY id ASC");
+$all_semesters = $sem_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (empty($semester) && !empty($all_semesters)) {
+    $semester = $all_semesters[0]['term'];
+}
+
+// Academic Year 
+if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
+    $academic_year = $_GET['academic_year'];
+} else {
+    $currentYear = date('Y');
+    $nextYear = $currentYear + 1;
+    $academic_year = "$currentYear-$nextYear"; 
+}
+
+// ၁။ search courses for the selected major and semester
 $stmt_sub = $conn->prepare("
-    SELECT cd.* FROM course_details cd 
+    SELECT DISTINCT cd.* FROM course_details cd 
     INNER JOIN course_assignments ca ON cd.id = ca.course_id 
     INNER JOIN session_details sd ON cd.session_id = sd.id 
-    WHERE sd.term = :sem 
-    AND ca.major_id = :mid
+    WHERE sd.term = :sem AND ca.major_id = :mid
 ");
 $stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
 $subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
-// reterive Major Students
+
+// ၂။ fetch students for the selected course, major, and academic year
 $students = [];
 if ($course_id) {
-    // take Major student from course_registration
     $stmt_std = $conn->prepare("
         SELECT sd.* FROM student_details sd 
         JOIN course_registration cr ON sd.id = cr.student_id 
-        WHERE cr.course_id = :cid 
-        AND sd.major_id = :mid
+        WHERE cr.course_id = :cid AND cr.academic_year = :ayear AND sd.major_id = :mid
         ORDER BY sd.roll_no ASC
     ");
-    $stmt_std->execute([':cid' => $course_id, ':mid' => $major_id]);
+    $stmt_std->execute([':cid' => $course_id, ':ayear' => $academic_year, ':mid' => $major_id]);
     $students = $stmt_std->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="my">
-
 <head>
     <meta charset="UTF-8">
-    <title>Attendance - <?= $major_name ?></title>
+    <title>Attendance - <?= htmlspecialchars($major_name) ?></title>
     <link rel="stylesheet" href="css/attendance.css">
 </head>
-
 <body>
     <div class="container">
         <header class="attendance-header">
-            <h1><?= $major_name ?> <small style="font-size: 1.2rem; color: #666;">(<?= $semester ?>)</small></h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <div>
+                <h1><?= htmlspecialchars($major_name) ?></h1>
+                <p style="color: #4f46e5; font-weight: bold;">AY: <?= htmlspecialchars($academic_year) ?> | <?= htmlspecialchars($semester) ?></p>
+            </div>
+            <div style="display: flex; gap: 10px;">
                 <a href="dashboard.php" class="class-btn" style="background: #6b7280; color: white; text-decoration: none;">⬅ Dashboard</a>
-                <span>📅 <?= date('d-m-Y') ?></span>
                 <button class="logout-btn" id="btnlogout">Logout</button>
             </div>
         </header>
 
-        <div class="filter-section">
-            <?php for ($i = 1; $i <= 10; $i++):
-                $sem = ($i == 1) ? "1st semester" : (($i == 2) ? "2nd semester" : $i . "th semester");
-                $active = ($semester == $sem) ? "active" : "";
+        <div class="filter-section" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px;">
+            <?php foreach ($all_semesters as $s_row): 
+                $active = ($semester == $s_row['term']) ? "active" : "";
             ?>
-                <a href="attendance.php?major_id=<?= $major_id ?>&major_name=<?= $major_name ?>&semester=<?= $sem ?>" class="class-btn <?= $active ?>"><?= $sem ?></a>
-            <?php endfor; ?>
+                <a href="attendance.php?major_id=<?= $major_id ?>&major_name=<?= urlencode($major_name) ?>&semester=<?= urlencode($s_row['term']) ?>&academic_year=<?= urlencode($academic_year) ?>"
+                   class="class-btn <?= $active ?>"><?= htmlspecialchars($s_row['term']) ?></a>
+            <?php endforeach; ?>
         </div>
 
         <div class="card" style="margin-bottom:20px;">
             <label style="font-weight: bold;">Select Subject: </label>
-            <select onchange="location = this.value;" style="padding: 8px; width: 100%;">
-                <option value="">-- Choose Subject (Total: <?= count($subjects) ?>) --</option>
-                <?php if (!empty($subjects)): ?>
-                    <?php foreach ($subjects as $s): ?>
-                        <option value="attendance.php?major_id=<?= $major_id ?>&major_name=<?= $major_name ?>&semester=<?= $semester ?>&course_id=<?= $s['id'] ?>" <?= ($course_id == $s['id']) ? 'selected' : '' ?>>
-                            <?= $s['code'] ?> - <?= $s['title'] ?>
-                        </option>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <option disabled>No subjects found for this semester</option>
-                <?php endif; ?>
+            <select onchange="location = this.value;" style="padding: 10px; width: 100%; border-radius: 5px; margin-top: 5px;">
+                <option value="">-- Choose Subject (<?= count($subjects) ?> found) --</option>
+                <?php foreach ($subjects as $s): ?>
+                    <option value="attendance.php?major_id=<?= $major_id ?>&major_name=<?= urlencode($major_name) ?>&semester=<?= urlencode($semester) ?>&academic_year=<?= urlencode($academic_year) ?>&course_id=<?= $s['id'] ?>"
+                        <?= ($course_id == $s['id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($s['code']) ?> - <?= htmlspecialchars($s['title']) ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
         </div>
 
         <form action="save_attendance.php" method="POST">
             <input type="hidden" name="course_id" value="<?= $course_id ?>">
             <input type="hidden" name="major_id" value="<?= $major_id ?>">
+            <input type="hidden" name="academic_year" value="<?= $academic_year ?>">
 
             <div class="card">
                 <?php if ($course_id && empty($students)): ?>
-                    <p style="text-align: center; color: #ef4444; padding: 20px;">ဤဘာသာရပ်တွင် စာရင်းသွင်းထားသော ကျောင်းသား မရှိသေးပါ။</p>
+                    <p style="text-align: center; color: red;">No students found in <?= htmlspecialchars($academic_year) ?> for this course.</p>
                 <?php elseif (!$course_id): ?>
-                    <p style="text-align: center; color: #6b7280; padding: 20px;">ကျောင်းသားစာရင်း မြင်ရရန် ဘာသာရပ်ကို အရင်ရွေးချယ်ပါ။</p>
+                    <p style="text-align: center; color: gray;">Please select a subject first.</p>
                 <?php else: ?>
-                    <table class="student-table">
+                    <table class="student-table" style="width:100%">
                         <thead>
-                            <tr>
-                                <th>Student Name & Roll No</th>
-                                <th style="text-align: center;">Present</th>
-                                <th style="text-align: center;">Absent</th>
-                            </tr>
+                            <tr><th>Roll No & Name</th><th>Present</th><th>Absent</th></tr>
                         </thead>
                         <tbody>
                             <?php foreach ($students as $st): ?>
                                 <tr>
-                                    <td>
-                                        <strong><?= $st['name'] ?></strong><br>
-                                        <small style="color: #666;"><?= $st['roll_no'] ?></small>
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <input type="radio" name="status[<?= $st['id'] ?>]" value="present" checked style="transform: scale(1.5);">
-                                    </td>
-                                    <td style="text-align: center;">
-                                        <input type="radio" name="status[<?= $st['id'] ?>]" value="absent" style="transform: scale(1.5);">
-                                    </td>
+                                    <td><b><?= $st['roll_no'] ?></b><br><?= htmlspecialchars($st['name']) ?></td>
+                                    <td align="center"><input type="radio" name="status[<?= $st['id'] ?>]" value="present" checked></td>
+                                    <td align="center"><input type="radio" name="status[<?= $st['id'] ?>]" value="absent"></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    <button type="submit" class="save-btn" style="width: 100%; margin-top: 20px; font-size: 1.1rem;">Save Attendance</button>
+                    <button type="submit" class="save-btn" style="width: 100%; margin-top: 20px;">✅ Save Attendance</button>
                 <?php endif; ?>
             </div>
         </form>
     </div>
-
-    <script src="js/jquery.js"></script>
     <script src="js/logout.js"></script>
 </body>
-
 </html>

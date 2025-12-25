@@ -4,14 +4,12 @@ require_once 'database/database.php';
 $db = new Database();
 
 $edit_course = null;
-$assigned_majors = []; // Edit 
+$assigned_majors = []; 
 
 // --- DELETE LOGIC ---
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    
     $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$id]);
-    
     $db->conn->prepare("DELETE FROM course_details WHERE id = ?")->execute([$id]);
     header("Location: manage_courses.php?msg=deleted");
     exit();
@@ -24,7 +22,6 @@ if (isset($_GET['edit'])) {
     $stmt->execute([$id]);
     $edit_course = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // course => assign for major
     $stmt_m = $db->conn->prepare("SELECT major_id FROM course_assignments WHERE course_id = ?");
     $stmt_m->execute([$id]);
     $assigned_majors = $stmt_m->fetchAll(PDO::FETCH_COLUMN); 
@@ -36,31 +33,43 @@ if (isset($_POST['save_course'])) {
     $title = $_POST['title'];
     $credits = $_POST['credits'];
     $session_id = $_POST['session_id'];
-    $major_ids = $_POST['major_ids'] ?? []; // Array of checkboxes
+    $major_ids = $_POST['major_ids'] ?? []; 
     $course_id = $_POST['course_id'];
+    $academic_year = $_POST['academic_year'] ?? '2024-2025'; 
 
-    if ($course_id) {
-        // UPDATE
-        $sql = "UPDATE course_details SET code=?, title=?, credits=?, session_id=? WHERE id=?";
-        $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $course_id]);
+    try {
+        $db->conn->beginTransaction();
 
-        
-        $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$course_id]);
-        $new_id = $course_id;
-    } else {
-        // INSERT
-        $sql = "INSERT INTO course_details (code, title, credits, session_id) VALUES (?, ?, ?, ?)";
-        $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id]);
-        $new_id = $db->conn->lastInsertId();
+        if ($course_id) {
+            // Update Course
+            $sql = "UPDATE course_details SET code=?, title=?, credits=?, session_id=?, academic_year=? WHERE id=?";
+            $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $academic_year, $course_id]);
+            $current_course_id = $course_id;
+
+            // Edit, delete previous assignments
+            $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$current_course_id]);
+        } else {
+            // Insert New Course
+            $sql = "INSERT INTO course_details (code, title, credits, session_id, academic_year) VALUES (?, ?, ?, ?, ?)";
+            $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $academic_year]);
+            $current_course_id = $db->conn->lastInsertId(); // get last inserted id
+        }
+
+        // insert new Assignment 
+        if (!empty($major_ids)) {
+            $assign_stmt = $db->conn->prepare("INSERT INTO course_assignments (course_id, major_id) VALUES (?, ?)");
+            foreach ($major_ids as $m_id) {
+                $assign_stmt->execute([$current_course_id, $m_id]);
+            }
+        }
+
+        $db->conn->commit();
+        header("Location: manage_courses.php?msg=success");
+        exit();
+    } catch (Exception $e) {
+        $db->conn->rollBack();
+        echo "Error: " . $e->getMessage();
     }
-
-    //to course_assigmnets (course,major)
-    foreach ($major_ids as $m_id) {
-        $db->conn->prepare("INSERT INTO course_assignments (course_id, major_id) VALUES (?, ?)")
-            ->execute([$new_id, $m_id]);
-    }
-    header("Location: manage_courses.php?msg=success");
-    exit();
 }
 
 // data fetch
@@ -74,12 +83,11 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
                              LEFT JOIN course_assignments ca ON cd.id = ca.course_id
                              LEFT JOIN major_details md ON ca.major_id = md.id
                              GROUP BY cd.id
-                             ORDER BY sd.id")->fetchAll(PDO::FETCH_ASSOC);
+                             ORDER BY sd.id, cd.code")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Manage Courses</title>
     <link rel="stylesheet" href="css/attendance.css">
@@ -93,7 +101,6 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
             border-radius: 8px;
             border: 1px solid #e5e7eb;
         }
-
         .checkbox-item {
             display: flex;
             align-items: center;
@@ -103,12 +110,11 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <header class="attendance-header">
             <h1>Manage <span style="color:#4f46e5">Courses</span></h1>
-            <a href="dashboard.php" class="class-btn">Back</a>
+            <a href="dashboard.php" class="class-btn">⬅ Back To Dashboard</a>
         </header>
 
         <div class="card" style="margin-bottom: 20px;">
@@ -131,7 +137,6 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
                 <div style="margin-bottom:15px;">
                     <div style="display:flex; align-items: center; gap: 15px; margin-bottom:8px;">
                         <label style="font-weight:bold;">Assign to Majors:</label>
-
                         <label style="font-size: 0.9rem; cursor: pointer; color: #4f46e5; display: flex; align-items: center; gap: 5px;">
                             <input type="checkbox" id="selectAllMajors"> Select All
                         </label>
@@ -161,7 +166,7 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
             <table class="student-table">
                 <thead>
                     <tr>
-                        <th style="width:20%">Majors</th>
+                        <th style="width:25%">Majors</th>
                         <th>Code</th>
                         <th>Title</th>
                         <th>Semester</th>
@@ -169,36 +174,41 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($courses as $c): ?>
-                        <tr>
-                            <td><small style="color:#4f46e5; font-weight:bold;"><?= $c['major_names'] ?: 'None' ?></small></td>
-                            <td><?= $c['code'] ?></td>
-                            <td><?= $c['title'] ?></td>
-                            <td><?= $c['term'] ?></td>
-                            <td>
-                                <a href="?edit=<?= $c['id'] ?>">Edit</a> |
-                                <a href="?delete=<?= $c['id'] ?>" style="color: red;" onclick="return confirm('Sure?')">Delete</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                    <?php if(empty($courses)): ?>
+                        <tr><td colspan="5" style="text-align:center;">No courses found.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($courses as $c): ?>
+                            <tr>
+                                <td>
+                                    <?php if($c['major_names']): ?>
+                                        <small style="color:#4f46e5; font-weight:bold;"><?= $c['major_names'] ?></small>
+                                    <?php else: ?>
+                                        <small style="color:red;">Not assigned to any major</small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($c['code']) ?></td>
+                                <td><?= htmlspecialchars($c['title']) ?></td>
+                                <td><?= htmlspecialchars($c['term']) ?></td>
+                                <td>
+                                    <a href="?edit=<?= $c['id'] ?>">Edit</a> |
+                                    <a href="?delete=<?= $c['id'] ?>" style="color: red;" onclick="return confirm('Sure?')">Delete</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
-
     <script>
         document.getElementById('selectAllMajors').addEventListener('change', function() {
-            // major checkbox
             const checkboxes = document.querySelectorAll('.major-checkbox');
-
-            // Select All 
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
 
-        
         const majorCheckboxes = document.querySelectorAll('.major-checkbox');
         majorCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
@@ -209,5 +219,4 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
         });
     </script>
 </body>
-
 </html>

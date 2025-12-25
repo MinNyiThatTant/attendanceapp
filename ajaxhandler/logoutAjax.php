@@ -1,5 +1,7 @@
 <?php
 session_start();
+session_unset();
+session_destroy();
 // clear session and destroy
 $_SESSION = [];
 if (ini_get("session.use_cookies")) {
@@ -8,8 +10,7 @@ if (ini_get("session.use_cookies")) {
 		$params['path'], $params['domain'], $params['secure'], $params['httponly']
 	);
 }
-session_unset();
-session_destroy();
+
 
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(['status' => 'success']);
