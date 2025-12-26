@@ -4,7 +4,7 @@ require_once 'database/database.php';
 $db = new Database();
 
 $edit_course = null;
-$assigned_majors = []; 
+$assigned_majors = [];
 
 // --- DELETE LOGIC ---
 if (isset($_GET['delete'])) {
@@ -24,7 +24,7 @@ if (isset($_GET['edit'])) {
 
     $stmt_m = $db->conn->prepare("SELECT major_id FROM course_assignments WHERE course_id = ?");
     $stmt_m->execute([$id]);
-    $assigned_majors = $stmt_m->fetchAll(PDO::FETCH_COLUMN); 
+    $assigned_majors = $stmt_m->fetchAll(PDO::FETCH_COLUMN);
 }
 
 // --- ADD or UPDATE LOGIC ---
@@ -33,29 +33,24 @@ if (isset($_POST['save_course'])) {
     $title = $_POST['title'];
     $credits = $_POST['credits'];
     $session_id = $_POST['session_id'];
-    $major_ids = $_POST['major_ids'] ?? []; 
+    $major_ids = $_POST['major_ids'] ?? [];
     $course_id = $_POST['course_id'];
-    $academic_year = $_POST['academic_year'] ?? '2024-2025'; 
+    $academic_year = $_POST['academic_year'] ?? '2024-2025';
 
     try {
         $db->conn->beginTransaction();
 
         if ($course_id) {
-            // Update Course
             $sql = "UPDATE course_details SET code=?, title=?, credits=?, session_id=?, academic_year=? WHERE id=?";
             $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $academic_year, $course_id]);
             $current_course_id = $course_id;
-
-            // Edit, delete previous assignments
             $db->conn->prepare("DELETE FROM course_assignments WHERE course_id = ?")->execute([$current_course_id]);
         } else {
-            // Insert New Course
             $sql = "INSERT INTO course_details (code, title, credits, session_id, academic_year) VALUES (?, ?, ?, ?, ?)";
             $db->conn->prepare($sql)->execute([$code, $title, $credits, $session_id, $academic_year]);
-            $current_course_id = $db->conn->lastInsertId(); // get last inserted id
+            $current_course_id = $db->conn->lastInsertId();
         }
 
-        // insert new Assignment 
         if (!empty($major_ids)) {
             $assign_stmt = $db->conn->prepare("INSERT INTO course_assignments (course_id, major_id) VALUES (?, ?)");
             foreach ($major_ids as $m_id) {
@@ -72,18 +67,32 @@ if (isset($_POST['save_course'])) {
     }
 }
 
-// data fetch
+// --- SEARCH & DATA FETCH LOGIC ---
+$search = $_GET['search'] ?? '';
+$search_query = "";
+$params = [];
+
+if (!empty($search)) {
+    // WHERE clause ကို GROUP BY အရှေ့မှာ ထည့်ရမှာ ဖြစ်ပါတယ်
+    $search_query = " WHERE cd.code LIKE ? OR cd.title LIKE ? ";
+    $params = ["%$search%", "%$search%"];
+}
+
+$sql_courses = "SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as major_names 
+                FROM course_details cd 
+                LEFT JOIN session_details sd ON cd.session_id = sd.id
+                LEFT JOIN course_assignments ca ON cd.id = ca.course_id
+                LEFT JOIN major_details md ON ca.major_id = md.id
+                $search_query
+                GROUP BY cd.id
+                ORDER BY sd.id, cd.code";
+
+$stmt_courses = $db->conn->prepare($sql_courses);
+$stmt_courses->execute($params);
+$courses = $stmt_courses->fetchAll(PDO::FETCH_ASSOC);
+
 $sessions = $db->conn->query("SELECT * FROM session_details")->fetchAll(PDO::FETCH_ASSOC);
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
-
-// show major with Group
-$courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as major_names 
-                             FROM course_details cd 
-                             LEFT JOIN session_details sd ON cd.session_id = sd.id
-                             LEFT JOIN course_assignments ca ON cd.id = ca.course_id
-                             LEFT JOIN major_details md ON ca.major_id = md.id
-                             GROUP BY cd.id
-                             ORDER BY sd.id, cd.code")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -92,29 +101,28 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
     <title>Manage Courses</title>
     <link rel="stylesheet" href="css/attendance.css">
     <style>
-        .major-checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            background: #f9fafb;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
+        .major-checkbox-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+        .search-input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; width: 220px; outline: none; }
+        .search-input:focus { border-color: #4f46e5; }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="attendance-header">
+        <header class="attendance-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <h1>Manage <span style="color:#4f46e5">Courses</span></h1>
-            <a href="dashboard.php" class="class-btn">⬅ Back To Dashboard</a>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <form method="GET" style="display: flex; gap: 5px;">
+                    <input type="text" name="search" class="search-input" placeholder="Search code or title..." value="<?= htmlspecialchars($search) ?>">
+                    <button type="submit" style="padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer;">🔍</button>
+                    <?php if (!empty($search)): ?>
+                        <a href="manage_courses.php" style="padding: 8px; color: #666; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center;">Clear</a>
+                    <?php endif; ?>
+                </form>
+
+                <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue; margin: 0;">⬅ Dashboard</a>
+            </div>
         </header>
 
         <div class="card" style="margin-bottom: 20px;">
@@ -174,16 +182,16 @@ $courses = $db->conn->query("SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARAT
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if(empty($courses)): ?>
+                    <?php if (empty($courses)): ?>
                         <tr><td colspan="5" style="text-align:center;">No courses found.</td></tr>
                     <?php else: ?>
                         <?php foreach ($courses as $c): ?>
                             <tr>
                                 <td>
-                                    <?php if($c['major_names']): ?>
+                                    <?php if ($c['major_names']): ?>
                                         <small style="color:#4f46e5; font-weight:bold;"><?= $c['major_names'] ?></small>
                                     <?php else: ?>
-                                        <small style="color:red;">Not assigned to any major</small>
+                                        <small style="color:red;">Not assigned</small>
                                     <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($c['code']) ?></td>

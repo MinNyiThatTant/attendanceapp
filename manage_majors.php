@@ -31,7 +31,7 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
 <div class="container">
     <header class="attendance-header">
         <h1>Major <span style="color:#4f46e5">Management</span></h1>
-        <a href="dashboard.php" class="class-btn">Back to Dashboard</a>
+        <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back To Dashboard</a>
     </header>
 
     <div class="card" style="margin-bottom: 20px;">
