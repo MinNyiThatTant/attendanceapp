@@ -3,17 +3,17 @@ session_start();
 require_once 'database/database.php';
 $db = new Database();
 
-// အသုံးပြုမည့် ပညာသင်နှစ်များ
+
 $academic_years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
 $edit_student = null;
 
-// --- ၁။ PAGINATION SETTINGS ---
-$limit = 10; // တစ်မျက်နှာလျှင် ပြမည့် ကျောင်းသားအရေအတွက်
+// ၁။ PAGINATION SETTINGS 
+$limit = 10; // one page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// --- ၂။ CSV IMPORT LOGIC ---
+// ၂။ CSV IMPORT LOGIC 
 if (isset($_POST['import_csv'])) {
     $filename = $_FILES["student_file"]["tmp_name"];
     if ($_FILES["student_file"]["size"] > 0) {
@@ -31,7 +31,7 @@ if (isset($_POST['import_csv'])) {
     }
 }
 
-// --- ၃။ DELETE LOGIC ---
+// ၃။ DELETE LOGIC 
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $db->conn->prepare("DELETE FROM student_details WHERE id = ?")->execute([$id]);
@@ -39,14 +39,14 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// --- ၄။ FETCH FOR EDIT ---
+// ၄။ FETCH FOR EDIT 
 if (isset($_GET['edit'])) {
     $stmt = $db->conn->prepare("SELECT * FROM student_details WHERE id = ?");
     $stmt->execute([$_GET['edit']]);
     $edit_student = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// --- ၅။ SAVE (ADD OR UPDATE) ---
+// ၅။ SAVE (ADD OR UPDATE) 
 if (isset($_POST['save_student'])) {
     $roll = $_POST['roll_no'];
     $name = $_POST['name'];
@@ -58,30 +58,29 @@ if (isset($_POST['save_student'])) {
     $photo_name = "default.png";
 
 
-    // --- Photo Upload Logic ---
+    // Photo Upload Logic 
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
         $target_dir = "assets/img/students/";
         
-        // Folder မရှိရင် ဆောက်ပေးမယ်
+        // create Folder
         if (!file_exists($target_dir)) {
             mkdir($target_dir, 0777, true);
         }
 
         $extension = pathinfo($_FILES["photo"]["name"], PATHINFO_EXTENSION);
-        // ပုံနာမည်ကို Roll No (သို့) RFID နဲ့ သိမ်းရင် ပိုရှာရလွယ်ပါတယ်
+        // set unique file name
         $photo_name = "ST_" . time() . "." . $extension; 
         $target_file = $target_dir . $photo_name;
 
         if (move_uploaded_file($_FILES["photo"]["tmp_name"], $target_file)) {
-            // Upload အောင်မြင်မှ $photo_name ကို သုံးမယ်
         } else {
-            $photo_name = "default.png"; // အမှားအယွင်းရှိရင် default ပဲ သုံးမယ်
+            $photo_name = "default.png"; 
         }
     }
 
-    // --- Database ထဲ သိမ်းမယ် ---
+    // for database
     $sql = "INSERT INTO student_details (name, roll_no, major_id, rfid_uid, photo) VALUES (?, ?, ?, ?, ?)";
-    $db->conn->prepare($sql)->execute([$name, $roll, $major, $rfid, $photo_name]);
+    $db->conn->prepare($sql)->execute([$name, $roll, $major_id, $rfid_uid, $photo_name]);
 
     header("Location: manage_students.php?msg=success");
 
@@ -97,21 +96,21 @@ if (isset($_POST['save_student'])) {
     exit();
 }
 
-// --- ၆။ SEARCH & DATA FETCHING WITH PAGINATION ---
+// ၆။ SEARCH & DATA FETCHING WITH PAGINATION 
 $search = $_GET['search'] ?? '';
 $search_query = "";
 if ($search) {
     $search_query = " WHERE sd.name LIKE :s OR sd.roll_no LIKE :s OR sd.rfid_uid LIKE :s";
 }
 
-// စုစုပေါင်းအရေအတွက်ကို အရင်တွက်ချက်ခြင်း (Total Pages သိရန်)
+// Total Rows & Pages Calculation
 $count_stmt = $db->conn->prepare("SELECT COUNT(*) FROM student_details sd $search_query");
 if ($search) $count_stmt->bindValue(':s', "%$search%");
 $count_stmt->execute();
 $total_rows = $count_stmt->fetchColumn();
 $total_pages = ceil($total_rows / $limit);
 
-// Data ထုတ်ယူခြင်း (LIMIT & OFFSET သုံးထားသည်)
+// Data Fetching
 $query = "SELECT sd.*, md.title as major_name 
           FROM student_details sd 
           LEFT JOIN major_details md ON sd.major_id = md.id 
@@ -178,8 +177,6 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         <label>Student Photo</label>
         <input type="file" name="photo" accept="image/*">
     </div>
-    
-    ...
 </form>
             <form method="POST" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
                 <input type="hidden" name="student_id" value="<?= $edit_student['id'] ?? '' ?>">

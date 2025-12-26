@@ -9,20 +9,20 @@ if (empty($_SESSION["current_user"])) {
 
 $db = new Database();
 
-// --- ၁။ Pagination & Settings ---
+// Pagination & Settings 
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 $academic_years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
 $edit_reg = null;
 
-// --- ၂။ CSV Bulk Import (Course တခုတည်းသို့ ကျောင်းသားများစွာသွင်းရန်) ---
+// CSV Bulk Import course registration
 if (isset($_POST['import_csv'])) {
     $course_id = $_POST['import_course_id'];
     $academic_year = $_POST['import_ay'];
     $filename = $_FILES["reg_file"]["tmp_name"];
 
-    // session_id ကို course_id ကနေယူမယ်
+    // session_id 
     $stmt_sess = $db->conn->prepare("SELECT session_id FROM course_details WHERE id = ?");
     $stmt_sess->execute([$course_id]);
     $session_id = $stmt_sess->fetchColumn();
@@ -31,9 +31,9 @@ if (isset($_POST['import_csv'])) {
         $file = fopen($filename, "r");
         fgetcsv($file); // Header skip
         while (($column = fgetcsv($file, 1000, ",")) !== FALSE) {
-            $student_roll = $column[0]; // CSV မှာ Roll No ပါရမယ်
+            $student_roll = $column[0]; 
             
-            // Roll No ကနေ Student ID ရှာမယ်
+            // student_id fetch
             $st_stmt = $db->conn->prepare("SELECT id FROM student_details WHERE roll_no = ?");
             $st_stmt->execute([$student_roll]);
             $student_id = $st_stmt->fetchColumn();

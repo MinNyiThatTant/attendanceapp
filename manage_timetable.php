@@ -4,11 +4,10 @@ require_once 'database/database.php';
 $db = new Database();
 
 
-// AJAX Request အတွက် Course များ ဆွဲထုတ်ပေးခြင်း
+// FETCH COURSES BASED ON MAJOR 
 if (isset($_GET['get_courses_by_major'])) {
     $m_id = $_GET['get_courses_by_major'];
     
-    // table နာမည်ကို course_assignments လို့ ပြောင်းလိုက်ပါတယ်
     $stmt = $db->conn->prepare("SELECT c.id, c.title FROM course_details c 
                                 JOIN course_assignments ca ON c.id = ca.course_id 
                                 WHERE ca.major_id = ?");
@@ -17,7 +16,7 @@ if (isset($_GET['get_courses_by_major'])) {
     exit;
 }
 
-// --- DELETE LOGIC ---
+// DELETE LOGIC 
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $db->conn->prepare("DELETE FROM timetable WHERE id = ?")->execute([$id]);
@@ -25,7 +24,7 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// --- EDIT DATA FETCH ---
+// EDIT DATA FETCH 
 $edit_timetable = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
@@ -34,13 +33,13 @@ if (isset($_GET['edit'])) {
     $edit_timetable = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// --- SAVE / UPDATE LOGIC ---
+// SAVE / UPDATE LOGIC 
 if (isset($_POST['save_timetable'])) {
     $major_id = $_POST['major_id'];
     $course_id = $_POST['course_id'];
     $day = $_POST['day_of_week'];
     $period = $_POST['period'];
-    $timetable_id = $_POST['timetable_id'] ?? null; // ID အသစ်ထပ်တိုးမယ်
+    $timetable_id = $_POST['timetable_id'] ?? null; // update
 
     $times = [
         1 => ['09:00:00', '10:00:00'],
@@ -115,7 +114,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
         <select name="course_id" id="course_select" required <?= !isset($edit_timetable) ? 'disabled' : '' ?>>
             <option value="">-- Select Course --</option>
             <?php if(isset($edit_timetable)): 
-                // Edit လုပ်နေတဲ့ Major နဲ့ဆိုင်တဲ့ Course တွေကို ပြန်ဆွဲထုတ်ပြမယ်
+                // reterive course concerning major_id
                 $stmt = $db->conn->prepare("SELECT c.id, c.title FROM course_details c JOIN course_assignments ca ON c.id = ca.course_id WHERE ca.major_id = ?");
                 $stmt->execute([$edit_timetable['major_id']]);
                 $ecourses = $stmt->fetchAll();

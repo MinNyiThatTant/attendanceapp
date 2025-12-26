@@ -23,14 +23,14 @@ $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Excel Header & Encoding Fix ---
+// Excel Header & Encoding Fix 
 header("Content-Type: application/vnd.ms-excel; charset=utf-8");
 header("Content-Disposition: attachment; filename=Attendance_Report_" . $f_month . ".xls");
 
-// UTF-8 BOM ကို ထည့်ပေးခြင်းဖြင့် Excel မှာ မြန်မာစာ ပေါ်စေပါသည်
+// UTF-8 BOM 
 echo "\xEF\xBB\xBF"; 
 
-// Table format နဲ့ ထုတ်ပေးရင် ပိုမိုလှပပြီး မြန်မာစာ ပိုမှန်ပါတယ်
+// Table format 
 echo "<table border='1'>";
 echo "<tr>
         <th style='background-color: #4f46e5; color: white;'>Date</th>
@@ -44,8 +44,8 @@ foreach ($data as $row) {
     echo "<tr>";
     echo "<td>" . $row['on_date'] . "</td>";
     echo "<td>" . $row['roll_no'] . "</td>";
-    echo "<td>" . $row['name'] . "</td>"; // Unicode မြန်မာစာ
-    echo "<td>" . $row['major'] . "</td>"; // Unicode မြန်မာစာ
+    echo "<td>" . $row['name'] . "</td>"; 
+    echo "<td>" . $row['major'] . "</td>"; 
     echo "<td>" . $row['status'] . "</td>";
     echo "</tr>";
 }

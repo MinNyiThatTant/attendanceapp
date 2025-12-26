@@ -17,15 +17,14 @@ $majors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $sem_stmt = $db->conn->query("SELECT term FROM session_details ORDER BY id ASC LIMIT 1");
 $default_sem = $sem_stmt->fetchColumn() ?: '1st semester';
 
-// dashboard.php (PHP Block ထဲတွင် ထည့်ရန်)
 
-// ၁။ ဒီနေ့အတွက် စုစုပေါင်း Attendance အရေအတွက် (Unique Students)
+// today statistics
 $today_date = date('Y-m-d');
 $stmt_present = $db->conn->prepare("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = ?");
 $stmt_present->execute([$today_date]);
 $total_present = $stmt_present->fetchColumn();
 
-// ၂။ ဒီနေ့အတွက် သင်ကြားရမည့် စုစုပေါင်း ဘာသာရပ်အရေအတွက် (Timetable မှ)
+// total classes today
 $today_day = date('l');
 $stmt_classes = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ?");
 $stmt_classes->execute([$today_day]);
@@ -126,7 +125,7 @@ $total_classes = $stmt_classes->fetchColumn();
                 </thead>
                 <tbody>
                     <?php
-                    // ဒီနေ့အတွက် နောက်ဆုံး Tap လုပ်ထားတဲ့ ၅ ယောက်ကို ပြပါ
+                    // recent 5 logs for today
                     $logs = $db->conn->query("SELECT a.*, s.name, c.title as course_name 
                                      FROM attendance_details a 
                                      JOIN student_details s ON a.student_id = s.id 
@@ -183,8 +182,8 @@ $total_classes = $stmt_classes->fetchColumn();
                 data: {
                     labels: ['Present', 'Remaining'],
                     datasets: [{
-                        // total_present နဲ့ ကျန်တဲ့အရေအတွက်ကို တွက်ပြမယ်
-                        data: [<?= $total_present ?>, <?= (100 - $total_present) ?>], // 100 နေရာမှာ Total Students variable ထည့်နိုင်ပါတယ်
+                        // total_present 
+                        data: [<?= $total_present ?>, <?= (100 - $total_present) ?>], 
                         backgroundColor: ['#10b981', '#e5e7eb'],
                         borderWidth: 0
                     }]
@@ -210,7 +209,7 @@ $total_classes = $stmt_classes->fetchColumn();
                     });
             }
 
-            // ၃ စက္ကန့်တိုင်း တစ်ခါ အလိုအလျောက် data သွားဆွဲမည်
+            // Refresh every 3 seconds
             setInterval(fetchLogs, 3000);
             window.onload = fetchLogs;
         </script>
@@ -229,7 +228,6 @@ $total_classes = $stmt_classes->fetchColumn();
     <script>
         let rfid_buffer = "";
         document.addEventListener('keypress', function(e) {
-            // Enter ခေါက်လိုက်ရင် (RFID Reader က နောက်ဆုံးမှာ Enter ခေါက်လေ့ရှိပါတယ်)
             if (e.key === 'Enter') {
                 if (rfid_buffer.length > 0) {
                     submitScan(rfid_buffer);
@@ -251,18 +249,18 @@ $total_classes = $stmt_classes->fetchColumn();
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Overlay မှာ အချက်အလက်တွေ ဖြည့်မယ်
+                        // Overlay 
                         document.getElementById('st-photo').src = 'assets/img/students/' + data.photo;
                         document.getElementById('st-name').innerText = data.name;
                         document.getElementById('st-roll').innerText = 'Roll No: ' + data.roll_no;
 
-                        // Overlay ပြမယ်
+                        // show 
                         document.getElementById('scan-overlay').style.display = 'flex';
 
-                        // ၃ စက္ကန့်နေရင် ပြန်ဖျောက်မယ်
+                        // hide after 3 seconds
                         setTimeout(() => {
                             document.getElementById('scan-overlay').style.display = 'none';
-                            fetchLogs(); // အနောက်က table list ကို refresh လုပ်မယ်
+                            fetchLogs(); // refresh logs
                         }, 3000);
                     } else {
                         alert(data.message);

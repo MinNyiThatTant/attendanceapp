@@ -13,7 +13,7 @@ $courses = $db->conn->query("SELECT id, title, code FROM course_details")->fetch
     <link rel="stylesheet" href="css/attendance.css">
     <style>
         .scan-container { text-align: center; padding: 50px 20px; }
-        .rfid-input { opacity: 0; position: absolute; } /* Input ကို ဖျောက်ထားမယ် */
+        .rfid-input { opacity: 0; position: absolute; } 
         .scan-visual { 
             width: 300px; height: 300px; border: 5px dashed #4f46e5; 
             border-radius: 50%; margin: 0 auto 30px;
@@ -68,15 +68,15 @@ $courses = $db->conn->query("SELECT id, title, code FROM course_details")->fetch
         const visualBox = document.getElementById('visual_box');
         const statusText = document.getElementById('status_text');
 
-        // အမြဲတမ်း focus ဖြစ်နေအောင် (Card ဖတ်ရင် input ထဲ တန်းရောက်ဖို့)
+        // read card to input
         document.addEventListener('click', () => rfidField.focus());
 
         rfidField.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') { // RFID scanner တွေက ဖတ်ပြီးရင် Enter ခေါက်လေ့ရှိတယ်
+            if (e.key === 'Enter') { // RFID scanner 
                 const uid = this.value;
                 const courseId = document.getElementById('current_course').value;
                 processAttendance(uid, courseId);
-                this.value = ''; // ချက်ချင်းပြန်ရှင်းမယ်
+                this.value = ''; // clear
             }
         });
 
@@ -85,7 +85,7 @@ $courses = $db->conn->query("SELECT id, title, code FROM course_details")->fetch
             statusText.innerText = "Processing...";
 
             try {
-                // AJAX နဲ့ server ဆီ ပို့မယ် (ဒီဖိုင်ကို အောက်မှာ ရေးပေးပါမယ်)
+                // AJAX request to process_scan.php
                 const response = await fetch('process_scan.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -100,7 +100,7 @@ $courses = $db->conn->query("SELECT id, title, code FROM course_details")->fetch
                     document.getElementById('student_card').style.display = 'block';
                     statusText.innerText = "Success!";
                     
-                    // ၃ စက္ကန့်နေရင် ပျောက်သွားမယ်
+                    // just a moment then reset (3seconds)
                     setTimeout(() => {
                         document.getElementById('student_card').style.display = 'none';
                         visualBox.classList.remove('active');

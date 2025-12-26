@@ -20,7 +20,6 @@ try {
             echo "<td><strong>" . htmlspecialchars($row['name']) . "</strong></td>";
             echo "<td><span style='background:#eef2ff; color:#4f46e5; padding:3px 8px; border-radius:4px; font-size:0.8rem;'>" . htmlspecialchars($row['course_name']) . "</span></td>";
             echo "<td>Period " . $row['period'] . "</td>";
-            // Created_at ကနေ အချိန်ထုတ်ပြခြင်း
             $time = isset($row['created_at']) ? date('h:i A', strtotime($row['created_at'])) : date('h:i A');
             echo "<td>" . $time . "</td>";
             echo "</tr>";

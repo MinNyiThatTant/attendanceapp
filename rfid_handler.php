@@ -9,13 +9,13 @@ if (isset($_GET['uid'])) {
     $time = date('H:i:s');
     $today = date('Y-m-d');
 
-    // ၁။ Student နှင့် သူ၏ အချက်အလက်များကို ရှာဖွေခြင်း
+    // ၁။ search student by rfid_uid
     $stmt = $db->conn->prepare("SELECT id, name, major_id, academic_year, current_semester FROM student_details WHERE rfid_uid = ?");
     $stmt->execute([$uid]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($student) {
-        // ၂။ Timetable တွင် ယခုအချိန် သင်ကြားနေသော Course ကို ရှာခြင်း
+        // ၂။ search timetable for current class
         $stmt = $db->conn->prepare("SELECT course_id, period FROM timetable 
                                     WHERE major_id = ? AND day_of_week = ?");
                                      // AND ? BETWEEN start_time AND end_time");
@@ -24,14 +24,14 @@ if (isset($_GET['uid'])) {
         $timetable = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($timetable) {
-            // ၃။ Duplicate စစ်ဆေးခြင်း (တစ်ချိန်တည်း နှစ်ခါမဝင်စေရန်)
+            // ၃။ check duplicate attendance
             $check = $db->conn->prepare("SELECT id FROM attendance_details 
                                          WHERE student_id = ? AND course_id = ? AND on_date = ? AND period = ?");
             $check->execute([$student['id'], $timetable['course_id'], $today, $timetable['period']]);
             
             if (!$check->fetch()) {
-                // ၄။ Attendance သိမ်းဆည်းခြင်း (သင့် Table Column များအတိုင်း)
-                // faculty_id နဲ့ session_id ကို လိုအပ်သလို default သို့မဟုတ် query ထဲမှ တွက်ယူပါ
+                // ၄။ save attendance
+                // academic_year 
                 $sql = "INSERT INTO attendance_details (student_id, course_id, period, on_date, status, academic_year) 
                         VALUES (?, ?, ?, ?, 'present', ?)";
                 $db->conn->prepare($sql)->execute([
