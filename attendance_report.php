@@ -14,7 +14,6 @@ $conn = $db->conn;
 $majors = $conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
 // $courses = $conn->query("SELECT id, title, code FROM course_details")->fetchAll(PDO::FETCH_ASSOC);
 
-// အရင်က code အဟောင်းနေရာမှာ ဒါနဲ့ အစားထိုးပါ
 $courses_sql = "
     SELECT cd.id, cd.title, cd.code, 
     (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors 
@@ -32,7 +31,6 @@ $f_month = $_GET['month'] ?? date('Y-m');
 // --- Report Data FETCHING (Updated with Major Filter) ---
 $report_data = [];
 if ($f_course) {
-    // Student ရဲ့ Major ကိုပါ စစ်ဖို့ AND s.major_id = ? ကို ထည့်လိုက်ပါတယ်
     $sql = "SELECT a.on_date as attendance_date, a.status, s.name, s.roll_no, m.title as major_name
             FROM attendance_details a
             JOIN student_details s ON a.student_id = s.id
@@ -42,7 +40,7 @@ if ($f_course) {
 
     $params = [$f_course, $f_month . '%'];
 
-    // အကယ်၍ Major ကို ရွေးထားရင် Query မှာ ထပ်တိုးစစ်မယ်
+
     if ($f_major) {
         $sql .= " AND s.major_id = ? ";
         $params[] = $f_major;
@@ -65,7 +63,7 @@ foreach ($report_data as $r) {
 $total_records = count($report_data);
 $attendance_percentage = ($total_records > 0) ? round(($present_count / $total_records) * 100, 2) : 0;
 
-// $all_courses_json = json_encode($courses_with_majors); // course_assignments table နဲ့ join ထားတဲ့ data လိုအပ်ပါတယ်
+// $all_courses_json = json_encode($courses_with_majors); 
 ?>
 
 
@@ -316,12 +314,12 @@ $attendance_percentage = ($total_records > 0) ? round(($present_count / $total_r
                     options[i].style.display = "none";
                 }
             }
-            // အကယ်၍ လက်ရှိရွေးထားတဲ့ course က ဖျောက်လိုက်တဲ့အထဲ ပါသွားရင် reset လုပ်မယ်
+            // check selected course is still visible
             if (options[courseSelect.selectedIndex].style.display === "none") {
                 courseSelect.value = "";
             }
         }
-        // စစချင်း load ဖြစ်ချိန်မှာလည်း တစ်ခါ run ပေးဖို့
+        // run window start load
         window.onload = updateCourseFilter;
     </script>
 </body>
