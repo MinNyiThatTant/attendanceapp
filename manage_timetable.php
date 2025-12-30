@@ -39,10 +39,11 @@ if (isset($_POST['save_timetable'])) {
     $course_id = $_POST['course_id'];
     $day = $_POST['day_of_week'];
     $period = $_POST['period'];
+    $academic_year = $_POST['academic_year'];
     $timetable_id = $_POST['timetable_id'] ?? null; // update
 
     $times = [
-        1 => ['09:00:00', '10:00:00'],
+        1 => ['00:00:00', '23:59:59'],
         2 => ['10:00:00', '11:00:00'],
         3 => ['11:00:00', '12:00:00'],
         4 => ['13:00:00', '14:00:00'],
@@ -54,13 +55,11 @@ if (isset($_POST['save_timetable'])) {
     $end = $times[$period][1];
 
     if ($timetable_id) {
-        // Update
-        $sql = "UPDATE timetable SET major_id=?, course_id=?, day_of_week=?, period=?, start_time=?, end_time=? WHERE id=?";
-        $db->conn->prepare($sql)->execute([$major_id, $course_id, $day, $period, $start, $end, $timetable_id]);
+        $sql = "UPDATE timetable SET major_id=?, course_id=?, day_of_week=?, period=?, start_time=?, end_time=?, academic_year=? WHERE id=?";
+        $db->conn->prepare($sql)->execute([$major_id, $course_id, $day, $period, $start, $end, $academic_year, $timetable_id]);
     } else {
-        // Insert
-        $sql = "INSERT INTO timetable (major_id, course_id, day_of_week, period, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)";
-        $db->conn->prepare($sql)->execute([$major_id, $course_id, $day, $period, $start, $end]);
+        $sql = "INSERT INTO timetable (major_id, course_id, day_of_week, period, start_time, end_time, academic_year) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $db->conn->prepare($sql)->execute([$major_id, $course_id, $day, $period, $start, $end, $academic_year]);
     }
     header("Location: manage_timetable.php?success=1");
     exit();
@@ -125,10 +124,22 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
         </select>
     </div>
 
+
+    <div class="input-group">
+    <label>Academic Year</label>
+    <select name="academic_year" required>
+        <?php 
+        $ay_list = ["2024-2025", "2025-2026", "2026-2027"];
+        foreach($ay_list as $ay): ?>
+            <option value="<?= $ay ?>" <?= (isset($edit_timetable) && $edit_timetable['academic_year'] == $ay) ? 'selected' : '' ?>><?= $ay ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
     <div class="input-group">
         <label>Day</label>
         <select name="day_of_week" required>
-            <?php $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; 
+            <?php $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday ']; 
             foreach($days as $d): ?>
                 <option value="<?= $d ?>" <?= (isset($edit_timetable) && $edit_timetable['day_of_week'] == $d) ? 'selected' : '' ?>><?= $d ?></option>
             <?php endforeach; ?>
@@ -139,7 +150,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
         <label>Period</label>
         <select name="period" required>
             <?php
-            $periods = ["9-10 AM", "10-11 AM", "11-12 AM", "1-2 PM", "2-3 PM", "3-4 PM"];
+            $periods = ["9-10[24h] AM", "10-11 AM", "11-12 AM", "1-2 PM", "2-3 PM", "3-4 PM"];
             foreach($periods as $i => $time): $p_val = $i+1; ?>
                 <option value="<?= $p_val ?>" <?= (isset($edit_timetable) && $edit_timetable['period'] == $p_val) ? 'selected' : '' ?>>
                     Period <?= $p_val ?> (<?= $time ?>)
@@ -203,5 +214,31 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
             });
     }
     </script>
+
+    <button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
+
+<script>
+// buttom
+let mybutton = document.getElementById("scrollUpBtn");
+
+// scroll page
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+    mybutton.style.display = "block"; // show over 300px
+  } else {
+    mybutton.style.display = "none"; // hide under 300px
+  }
+}
+
+// top function
+function topFunction() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth' 
+  });
+}
+</script>
 </body>
 </html>

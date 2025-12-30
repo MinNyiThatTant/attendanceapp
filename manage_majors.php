@@ -68,5 +68,30 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
         </table>
     </div>
 </div>
+
+
+<button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
+
+<script>
+let mybutton = document.getElementById("scrollUpBtn");
+
+
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+    mybutton.style.display = "block"; 
+  } else {
+    mybutton.style.display = "none"; 
+  }
+}
+
+function topFunction() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth' 
+  });
+}
+</script>
 </body>
 </html>

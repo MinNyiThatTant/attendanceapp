@@ -1,58 +1,52 @@
 <?php
 session_start();
 require_once 'database/database.php';
+$db = new Database();
+$conn = $db->conn;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['status'])) {
-    $db = new Database();
-    $conn = $db->conn;
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // take data from POST
     $course_id = $_POST['course_id'];
-    $faculty_id = $_SESSION['current_user'];
-    $academic_year = $_POST['academic_year'] ?? '2024-2025'; // academic_year from attendance form
-    $date = date('Y-m-d');
-
-    // ၁။ session_id (Semester)
-    $stmt_sess = $conn->prepare("SELECT session_id FROM course_details WHERE id = ? LIMIT 1");
-    $stmt_sess->execute([$course_id]);
-    $session_id = $stmt_sess->fetchColumn();
-
-    if (!$session_id) {
-        
-        header("Location: dashboard.php?msg=Error_Invalid_Session");
-        exit();
-    }
+    $major_id = $_POST['major_id']; // hidden input for redirect
+    $academic_year = $_POST['academic_year'];
+    $date = $_POST['attendance_date'];
+    $on_time = date('H:i:s');
+    $status_list = $_POST['status']; // [student_id => status]
 
     try {
         $conn->beginTransaction();
 
-        foreach ($_POST['status'] as $student_id => $status) {
-            // ၂။ Duplicate Check
-            $stmt_check = $conn->prepare("SELECT id FROM attendance_details 
-                                         WHERE student_id = ? AND course_id = ? AND on_date = ?");
+        foreach ($status_list as $student_id => $status) {
+            $status = ucfirst($status); // 'present' -> 'Present'
+
+            // check if attendance record already exists
+            $stmt_check = $conn->prepare("SELECT id FROM attendance_details WHERE student_id = ? AND course_id = ? AND on_date = ?");
             $stmt_check->execute([$student_id, $course_id, $date]);
             $existing_id = $stmt_check->fetchColumn();
 
             if ($existing_id) {
                 // update
-                $sql = "UPDATE attendance_details SET status = ?, faculty_id = ?, academic_year = ? WHERE id = ?";
-                $conn->prepare($sql)->execute([$status, $faculty_id, $academic_year, $existing_id]);
+                $sql = "UPDATE attendance_details SET status = ?, on_time = ? WHERE id = ?";
+                $conn->prepare($sql)->execute([$status, $on_time, $existing_id]);
             } else {
-                // insert - academic_year
-                $sql = "INSERT INTO attendance_details (faculty_id, student_id, course_id, session_id, on_date, status, academic_year) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?)";
-                $conn->prepare($sql)->execute([$faculty_id, $student_id, $course_id, $session_id, $date, $status, $academic_year]);
+                // insert
+                $sql = "INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status) VALUES (?, ?, ?, ?, ?)";
+                $conn->prepare($sql)->execute([$student_id, $course_id, $date, $on_time, $status]);
             }
         }
 
         $conn->commit();
-        header("Location: dashboard.php?msg=Success");
+        header("Location: attendance.php?major_id=$major_id&course_id=$course_id&msg=success");
         exit();
 
     } catch (Exception $e) {
         $conn->rollBack();
-        die("Error: " . $e->getMessage());
+        die("Database Error: " . $e->getMessage());
     }
+
 } else {
+    // if not POST, redirect to dashboard
     header("Location: dashboard.php");
     exit();
 }
+?>

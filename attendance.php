@@ -28,7 +28,7 @@ if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
     $academic_year = "$currentYear-$nextYear"; 
 }
 
-// ၁။ search courses for the selected major and semester
+// search courses for the selected major and semester
 $stmt_sub = $conn->prepare("
     SELECT DISTINCT cd.* FROM course_details cd 
     INNER JOIN course_assignments ca ON cd.id = ca.course_id 
@@ -38,7 +38,7 @@ $stmt_sub = $conn->prepare("
 $stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
 $subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
 
-// ၂။ fetch students for the selected course, major, and academic year
+// fetch students for the selected course, major, and academic year
 $students = [];
 if ($course_id) {
     $stmt_std = $conn->prepare("
@@ -98,6 +98,7 @@ if ($course_id) {
             <input type="hidden" name="course_id" value="<?= $course_id ?>">
             <input type="hidden" name="major_id" value="<?= $major_id ?>">
             <input type="hidden" name="academic_year" value="<?= $academic_year ?>">
+            <input type="hidden" name="attendance_date" value="<?= date('Y-m-d') ?>">
 
             <div class="card">
                 <?php if ($course_id && empty($students)): ?>

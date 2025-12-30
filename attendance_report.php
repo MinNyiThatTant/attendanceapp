@@ -10,318 +10,210 @@ if (empty($_SESSION["current_user"])) {
 $db = new Database();
 $conn = $db->conn;
 
-// ၁။ Filter data
+// take data for filters
 $majors = $conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
-// $courses = $conn->query("SELECT id, title, code FROM course_details")->fetchAll(PDO::FETCH_ASSOC);
-
-$courses_sql = "
-    SELECT cd.id, cd.title, cd.code, 
-    (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors 
-    FROM course_details cd
-";
+$courses_sql = "SELECT cd.id, cd.title, cd.code, (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors FROM course_details cd";
 $courses = $conn->query($courses_sql)->fetchAll(PDO::FETCH_ASSOC);
 
-
-// ၂။ Filter parameters 
+// Filter Parameters 
 $f_major = $_GET['major_id'] ?? '';
 $f_course = $_GET['course_id'] ?? '';
-$f_month = $_GET['month'] ?? date('Y-m');
+$f_date = $_GET['date'] ?? date('Y-m-d');
+$f_month = date('Y-m', strtotime($f_date)); // month format for excel
 
-// ၃။ Report Data 
-// --- Report Data FETCHING (Updated with Major Filter) ---
 $report_data = [];
+$present_count = 0;
+$total_records = 0;
+$attendance_percentage = 0;
+
 if ($f_course) {
-    $sql = "SELECT a.on_date as attendance_date, a.status, s.name, s.roll_no, m.title as major_name
-            FROM attendance_details a
-            JOIN student_details s ON a.student_id = s.id
+    $sql = "SELECT 
+                s.name, s.roll_no, m.title as major_name,
+                IFNULL(a.status, 'Absent') as status,
+                :f_date as attendance_date
+            FROM course_registration r
+            JOIN student_details s ON r.student_id = s.id
             JOIN major_details m ON s.major_id = m.id
-            WHERE a.course_id = ? 
-            AND a.on_date LIKE ? ";
+            LEFT JOIN attendance_details a ON s.id = a.student_id 
+                AND a.course_id = r.course_id 
+                AND a.on_date = :f_date
+            WHERE r.course_id = :course_id";
 
-    $params = [$f_course, $f_month . '%'];
-
-
+    $params = [':course_id' => $f_course, ':f_date' => $f_date];
     if ($f_major) {
-        $sql .= " AND s.major_id = ? ";
-        $params[] = $f_major;
+        $sql .= " AND s.major_id = :major_id";
+        $params[':major_id'] = $f_major;
     }
-
-    $sql .= " ORDER BY a.on_date DESC, s.roll_no ASC";
+    $sql .= " ORDER BY s.roll_no ASC";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     $report_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
 
-// ၄။ Calculate Statistics
-$present_count = 0;
-$absent_count = 0;
-foreach ($report_data as $r) {
-    if (strtolower($r['status']) == 'present' || $r['status'] == 'Checked In') $present_count++;
-    else $absent_count++;
+    $total_records = count($report_data);
+    foreach ($report_data as $row) {
+        if (strtolower($row['status']) == 'present' || strtolower($row['status']) == 'checked in') $present_count++;
+    }
+    $absent_count = $total_records - $present_count;
+    $attendance_percentage = ($total_records > 0) ? round(($present_count / $total_records) * 100, 1) : 0;
 }
-$total_records = count($report_data);
-$attendance_percentage = ($total_records > 0) ? round(($present_count / $total_records) * 100, 2) : 0;
-
-// $all_courses_json = json_encode($courses_with_majors); 
 ?>
 
-
-
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>Attendance Report & Analytics</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Analysis - Report</title>
     <link rel="stylesheet" href="css/attendance.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .filter-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .report-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            align-items: flex-end;
-        }
-
-        .stat-container {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .stat-cards {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .stat-box {
-            padding: 20px;
-            border-radius: 10px;
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { padding: 15px; border-radius: 8px; color: white; text-align: center; }
+        .report-content { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 850px) { .report-content { grid-template-columns: 1fr; } }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #fff; }
+        
+        /* Excel Button Style */
+        .btn-excel {
+            background-color: #16a34a;
             color: white;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .present-box {
-            background: #10b981;
-        }
-
-        .absent-box {
-            background: #ef4444;
-        }
-
-        .total-box {
-            background: #4f46e5;
-        }
-
-        .percent-box {
-            background: #f59e0b;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            display: flex;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-        }
-
-        .search-btn {
-            background: #4f46e5;
-            color: white;
-            border: none;
-            height: 45px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
             transition: 0.3s;
         }
-
-        .search-btn:hover {
-            background: #4338ca;
-        }
+        .btn-excel:hover { background-color: #15803d; }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <header class="attendance-header">
-            <h1>Attendance <span style="color:#4f46e5">Analytics</span></h1>
-            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back to Dashboard</a>
-        </header>
 
-        <div class="filter-card">
-            <form method="GET" class="report-grid">
-                <div class="input-group">
-                    <label>Major</label>
-                    <select name="major_id" id="major_filter" onchange="updateCourseFilter()">
-                        <option value="">-- All Majors --</option>
-                        <?php foreach ($majors as $m): ?>
-                            <option value="<?= $m['id'] ?>" <?= $f_major == $m['id'] ? 'selected' : '' ?>><?= $m['title'] ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Course</label>
-                    <select name="course_id" id="course_filter" required>
-                        <option value="">-- Choose Course --</option>
-                        <?php foreach ($courses as $c): ?>
-                            <option value="<?= $c['id'] ?>"
-                                data-majors="<?= $c['assigned_majors'] ?>"
-                                <?= $f_course == $c['id'] ? 'selected' : '' ?>>
-                                <?= $c['code'] ?> - <?= $c['title'] ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Month</label>
-                    <input type="month" name="month" value="<?= $f_month ?>">
-                </div>
-                <!-- <button type="submit" class="search-btn">Generate Analysis</button> -->
-                <!-- <div style="display: flex; gap: 10px;"> -->
-                <button type="submit" class="search-btn" style="flex: 1;">Generate Analysis</button>
-
-                <?php if ($f_course): ?>
-                    <a href="export_excel.php?course_id=<?= $f_course ?>&major_id=<?= $f_major ?>&month=<?= $f_month ?>"
-                        class="search-btn" style="background: #059669; text-decoration: none; display: flex; align-items: center; justify-content: center; padding: 0 15px;">
-                        Excel Export
-                    </a>
-                <?php endif; ?>
-                <!-- </div> -->
-            </form>
+<div class="container">
+    <header class="attendance-header">
+        <h1>Attendance <span style="color:#4f46e5">Analytics</span></h1>
+        <div style="display: flex; gap: 10px;">
+            <?php if ($f_course): ?>
+                <a href="export_excel.php?major_id=<?= $f_major ?>&course_id=<?= $f_course ?>&month=<?= $f_month ?>" class="btn-excel">
+                    📊 Export Excel
+                </a>
+            <?php endif; ?>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none;">⬅ Dashboard</a>
         </div>
+    </header>
 
-        <?php if ($f_course): ?>
-            <div class="stat-container">
-                <div class="stat-cards">
-                    <div class="stat-box total-box">
-                        <h2 style="margin:0;"><?= $total_records ?></h2>
-                        <p style="margin:0; font-size: 0.9rem;">Total Classes</p>
+    <div class="card">
+        <form method="GET">
+            <div class="form-container">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Filter Major</label>
+                        <select name="major_id" id="major_filter" onchange="updateCourseFilter()">
+                            <option value="">All Majors</option>
+                            <?php foreach ($majors as $m): ?>
+                                <option value="<?= $m['id'] ?>" <?= $f_major == $m['id'] ? 'selected' : '' ?>><?= $m['title'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <div class="stat-box percent-box">
-                        <h2 style="margin:0;"><?= $attendance_percentage ?>%</h2>
-                        <p style="margin:0; font-size: 0.9rem;">Attendance Rate</p>
-                    </div>
-                    <div class="stat-box present-box">
-                        <h2 style="margin:0;"><?= $present_count ?></h2>
-                        <p style="margin:0; font-size: 0.9rem;">Presents</p>
-                    </div>
-                    <div class="stat-box absent-box">
-                        <h2 style="margin:0;"><?= $absent_count ?></h2>
-                        <p style="margin:0; font-size: 0.9rem;">Absents</p>
+
+                    <div class="input-group">
+                        <label>Select Course</label>
+                        <select name="course_id" id="course_filter" required>
+                            <option value="">-- Choose Course --</option>
+                            <?php foreach ($courses as $c): ?>
+                                <option value="<?= $c['id'] ?>" 
+                                        data-majors="<?= $c['assigned_majors'] ?>"
+                                        <?= $f_course == $c['id'] ? 'selected' : '' ?>>
+                                    <?= $c['code'] ?> - <?= $c['title'] ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
 
-                <div class="chart-card">
-                    <canvas id="attendanceChart" style="max-height: 200px;"></canvas>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Select Date</label>
+                        <input type="date" name="date" value="<?= $f_date ?>">
+                    </div>
+
+                    <div class="input-group" style="display: flex; align-items: flex-end;">
+                        <button type="submit" class="save-btn" style="width: 100%; margin: 0; height: 42px;">Generate Analysis</button>
+                    </div>
                 </div>
             </div>
+        </form>
+    </div>
 
-            <div class="card" style="padding:0; overflow:hidden; margin-top: 20px;">
-                <table class="student-table">
-                    <thead style="background:#f9fafb">
-                        <tr>
-                            <th>Date</th>
-                            <th>Roll No</th>
-                            <th>Student Name</th>
-                            <th style="text-align:center">Status</th>
+    <?php if ($f_course): ?>
+        <div class="stats-grid">
+            <div class="stat-box" style="background: #4f46e5;"><small>Total Students</small><div><?= $total_records ?></div></div>
+            <div class="stat-box" style="background: #10b981;"><small>Present</small><div><?= $present_count ?></div></div>
+            <div class="stat-box" style="background: #ef4444;"><small>Absent</small><div><?= $absent_count ?></div></div>
+            <div class="stat-box" style="background: #f59e0b;"><small>Rate (%)</small><div><?= $attendance_percentage ?>%</div></div>
+        </div>
+
+        <div class="report-content">
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; font-weight: bold;">Student Attendance List</div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f4f4f4; text-align: left;">
+                            <th style="padding: 12px;">Roll No</th>
+                            <th style="padding: 12px;">Student Name</th>
+                            <th style="padding: 12px; text-align: center;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($report_data)): ?>
-                            <tr>
-                                <td colspan="4" style="text-align:center; padding:30px; color: #9ca3af;">No records found for this period.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($report_data as $row): ?>
-                                <tr>
-                                    <td><?= date('d-M-Y', strtotime($row['attendance_date'])) ?></td>
-                                    <td><strong><?= $row['roll_no'] ?></strong></td>
-                                    <td><?= $row['name'] ?></td>
-                                    <td style="text-align:center">
-                                        <?php if (strtolower($row['status']) == 'present' || $row['status'] == 'Checked In'): ?>
-                                            <span style="color:#10b981; font-weight:bold;">● Present</span>
-                                        <?php else: ?>
-                                            <span style="color:#ef4444; font-weight:bold;">● Absent</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <?php foreach ($report_data as $row): $is_p = (strtolower($row['status']) == 'present' || strtolower($row['status']) == 'checked in'); ?>
+                        <tr>
+                            <td style="padding: 12px; font-weight: bold;"><?= $row['roll_no'] ?></td>
+                            <td style="padding: 12px;"><?= $row['name'] ?></td>
+                            <td style="padding: 12px; text-align: center;">
+                                <span class="badge" style="background: <?= $is_p ? '#10b981' : '#ef4444' ?>;">
+                                    <?= $is_p ? 'Present' : 'Absent' ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-        <?php endif; ?>
-    </div>
 
-    <script>
-        // Chart.js Configuration
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Present', 'Absent'],
-                datasets: [{
-                    data: [<?= $present_count ?>, <?= $absent_count ?>],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Monthly Attendance Overview'
-                    }
-                }
-            }
-        });
-    </script>
+            <div class="card" style="text-align: center;">
+                <h4 style="margin-top: 0;">Attendance Ratio</h4>
+                <div style="height: 250px;"><canvas id="attendanceChart"></canvas></div>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
 
-
-    <script>
-        function updateCourseFilter() {
-            const majorId = document.getElementById('major_filter').value;
-            const courseSelect = document.getElementById('course_filter');
-            const options = courseSelect.options;
-
-            for (let i = 1; i < options.length; i++) {
-                const majors = options[i].getAttribute('data-majors') || "";
-                if (majorId === "" || majors.split(',').includes(majorId)) {
-                    options[i].style.display = "block";
-                } else {
-                    options[i].style.display = "none";
-                }
-            }
-            // check selected course is still visible
-            if (options[courseSelect.selectedIndex].style.display === "none") {
-                courseSelect.value = "";
-            }
+<script>
+    function updateCourseFilter() {
+        const majorId = document.getElementById('major_filter').value;
+        const courseSelect = document.getElementById('course_filter');
+        const options = courseSelect.options;
+        for (let i = 1; i < options.length; i++) {
+            const majors = options[i].getAttribute('data-majors') || "";
+            options[i].style.display = (majorId === "" || majors.split(',').includes(majorId)) ? "block" : "none";
         }
-        // run window start load
-        window.onload = updateCourseFilter;
-    </script>
-</body>
+    }
 
+    <?php if ($f_course): ?>
+    new Chart(document.getElementById('attendanceChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Absent'],
+            datasets: [{ data: [<?= $present_count ?>, <?= $absent_count ?>], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
+    });
+    <?php endif; ?>
+    window.onload = updateCourseFilter;
+</script>
+</body>
 </html>
