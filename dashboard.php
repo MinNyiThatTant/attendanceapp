@@ -231,6 +231,26 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
     <script>
         let attendanceChart;
 
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            if (audioUnlocked) return;
+
+            // unlock all audio elements
+            const sounds = ['audio-success', 'audio-error', 'audio-warning'];
+            sounds.forEach(id => {
+                const audio = document.getElementById(id);
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }).catch(e => {
+                    console.log("Audio unlock waiting for first interaction");
+                });
+            });
+            audioUnlocked = true;
+        }
+
+
         function submitScan(uid) {
             if (!uid) return;
             $('#manual_uid').val('');
