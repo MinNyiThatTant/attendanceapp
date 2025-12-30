@@ -33,6 +33,41 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
         .progress-fill { height: 100%; background: #4f46e5; width: 0%; transition: width 1s ease-out; }
         .nav-link-btn { text-decoration: none; background: #f3f4f6; padding: 10px 15px; border-radius: 8px; color: #374151; font-weight: 500; font-size: 0.9rem; transition: 0.2s; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* dashboard.php ရဲ့ <style> အောက်မှာ ဒါကို ရှာပြီး အစားထိုးပါ */
+#scan-overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0, 0, 0, 0.8); /* နောက်ခံကို ပိုမှောင်စေရန် */
+    z-index: 9999; 
+    
+    /* အလယ်တည့်တည့် ရောက်စေရန် အဓိက အချက်များ */
+    display: none; /* jQuery ရဲ့ fadeIn ကြောင့် ဒါက အရေးကြီးတယ် */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px); /* နောက်ခံကို ဝါးသွားစေရန် (ပိုလန်းပါတယ်) */
+}
+
+/* Popup Card ကို ပိုမိုလှပပြီး သေသပ်စေရန် */
+.scan-card {
+    width: 90%;
+    max-width: 450px; /* ဖုန်းနဲ့ကြည့်ရင်လည်း အဆင်ပြေအောင် */
+    text-align: center; 
+    padding: 40px 30px; 
+    border-radius: 30px; 
+    background: white; 
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.3s ease-out; /* Popup ပွင့်လာရင် scale ချဲ့ပြတဲ့ animation */
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
     </style>
 </head>
 <body>
@@ -108,53 +143,84 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
     </div>
 
     <script>
-        let attendanceChart;
-        function submitScan(uid) {
-            if (!uid) return;
-            $('#manual_uid').val('');
-            $.post('process_scan.php', { rfid_uid: uid }, function(res) {
-                const data = JSON.parse(res);
-                if (data.success) {
-                    $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                    $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                    $('#st-name').text(data.name);
-                    $('#st-roll').text('Roll No: ' + data.roll_no);
-                    $('#st-course').text(data.course);
-                    $('#st-percentage').text(data.percentage + '%');
-                    $('#st-progress-bar').css({'width': data.percentage + '%', 'background': '#10b981'});
-                } else {
-                    $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                }
-                $('#scan-overlay').fadeIn().delay(3000).fadeOut();
-                fetchLogs();
-            });
-        }
+    let attendanceChart;
 
-        function fetchLogs() {
-            $.getJSON('fetch_dashboard_stats.php', function(data) {
-                $('#present-count-display').text(data.total_present);
-                $('#attendance-body').html(data.table_html);
-                if (attendanceChart) {
-                    attendanceChart.data.datasets[0].data = [data.total_present, Math.max(0, data.total_expected - data.total_present)];
-                    attendanceChart.update();
-                }
-            });
-        }
+    function submitScan(uid) {
+        if (!uid) return;
+        $('#manual_uid').val('');
 
-        $(document).ready(function() {
-            const ctx = document.getElementById('todayAttendanceChart').getContext('2d');
-            attendanceChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Present', 'Absent'],
-                    datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#e5e7eb'], borderWidth: 0 }]
-                },
-                options: { cutout: '75%' }
-            });
-            setInterval(fetchLogs, 5000);
+        $.post('process_scan.php', { rfid_uid: uid }, function(res) {
+            const data = JSON.parse(res);
+            if (data.success) {
+                $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                $('#st-name').text(data.name);
+                $('#st-roll').text('Roll No: ' + data.roll_no);
+                $('#st-course').text(data.course);
+                $('#st-percentage').text(data.percentage + '%');
+                $('#st-progress-bar').css({'width': data.percentage + '%', 'background': '#10b981'});
+            } else {
+                $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                // default
+                $('#st-photo').attr('src', 'assets/img/students/default.png');
+                $('#st-name').text('Unknown Student');
+                $('#st-roll').text('Roll No: -');
+                $('#st-course').text('');
+                $('#st-percentage').text('0%');
+                $('#st-progress-bar').css('width', '0%');
+            }
+
+            // flex
+            $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+
+            // 3 seconds intervel
+            setTimeout(function() {
+                $('#scan-overlay').fadeOut(400);
+            }, 3000);
+
             fetchLogs();
-            $('#manual_uid').on('keypress', function(e) { if(e.which == 13) submitScan($(this).val()); });
         });
-    </script>
+    }
+
+    function fetchLogs() {
+        $.getJSON('fetch_dashboard_stats.php', function(data) {
+            $('#present-count-display').text(data.total_present);
+            $('#attendance-body').html(data.table_html);
+            if (attendanceChart) {
+                attendanceChart.data.datasets[0].data = [
+                    data.total_present, 
+                    Math.max(0, data.total_expected - data.total_present)
+                ];
+                attendanceChart.update();
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        // Chart Initializing
+        const ctx = document.getElementById('todayAttendanceChart').getContext('2d');
+        attendanceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent'],
+                datasets: [{ 
+                    data: [0, 1], 
+                    backgroundColor: ['#10b981', '#e5e7eb'], 
+                    borderWidth: 0 
+                }]
+            },
+            options: { cutout: '75%' }
+        });
+
+        // 5 seconds time intervel
+        setInterval(fetchLogs, 5000);
+        fetchLogs();
+
+        // Enter
+        $('#manual_uid').on('keypress', function(e) { 
+            if(e.which == 13) submitScan($(this).val()); 
+        });
+    });
+</script>
 </body>
 </html>
