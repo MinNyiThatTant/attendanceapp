@@ -10,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
     $current_time = date('H:i:s');
     $day_of_week = date('l');
 
-    // search student by rfid_uid
     $stmt = $db->conn->prepare("SELECT id, name, roll_no, major_id, photo FROM student_details WHERE rfid_uid = ?");
     $stmt->execute([$uid]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -20,18 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         exit;
     }
 
-    // Get the current academic year for the student
     $reg_year_stmt = $db->conn->prepare("SELECT academic_year FROM course_registration WHERE student_id = ? ORDER BY id DESC LIMIT 1");
     $reg_year_stmt->execute([$student['id']]);
     $current_academic_year = $reg_year_stmt->fetchColumn();
 
     if (!$current_academic_year) {
-        // Student not registered
         echo json_encode(['success' => false, 'message' => 'Student not registered!']);
         exit;
     }
 
-    // check current class from timetable
     $time_sql = "SELECT t.course_id, t.period, c.title as course_title, c.total_classes 
                  FROM timetable t
                  JOIN course_details c ON t.course_id = c.id
@@ -47,46 +43,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
 
     if ($current_class) {
         $course_id = $current_class['course_id'];
-        $period = $current_class['period'];
 
-        // check registration for the course
-        $reg_check_stmt = $db->conn->prepare("SELECT id FROM course_registration WHERE student_id = ? AND course_id = ? AND academic_year = ?");
-        $reg_check_stmt->execute([$student['id'], $course_id, $current_academic_year]);
-
-        if (!$reg_check_stmt->fetch()) {
-            echo json_encode([
-                'success' => false,
-                'message' => "Not Registered for " . $current_class['course_title'] . " ($current_academic_year)",
-                'name' => $student['name'],
-                'photo' => $student['photo'] ?: 'default.png'
-            ]);
-            exit;
-        }
-
-        // process_scan.php ရဲ့ အဓိက အစိတ်အပိုင်း
         $check = $db->conn->prepare("SELECT id, status FROM attendance_details WHERE student_id = ? AND course_id = ? AND on_date = ?");
         $check->execute([$student['id'], $course_id, $date]);
         $existing_attendance = $check->fetch(PDO::FETCH_ASSOC);
 
         if (!$existing_attendance) {
-            // သစ်လွင်သော Record သွင်းခြင်း
-            $ins = $db->conn->prepare("INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status) VALUES (?, ?, ?, ?, 'Present')");
-            $ins->execute([$student['id'], $course_id, $date, $current_time]);
+            // INSERT logic ထဲမှာ academic_year ကိုပါ ထည့်သွင်းပေးထားသည်
+            $ins = $db->conn->prepare("INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status, academic_year) VALUES (?, ?, ?, ?, 'Present', ?)");
+            $ins->execute([$student['id'], $course_id, $date, $current_time, $current_academic_year]);
             $msg = 'Attendance Marked!';
         } else {
-            // အကယ်၍ Manual Save ကြောင့် Absent ဖြစ်နေရင် Present သို့ ပြောင်းပေးရမည်
             if ($existing_attendance['status'] !== 'Present') {
                 $upd = $db->conn->prepare("UPDATE attendance_details SET status = 'Present', on_time = ? WHERE id = ?");
                 $upd->execute([$current_time, $existing_attendance['id']]);
-                $msg = 'Changed from Absent to Present!';
+                $msg = 'Changed to Present!';
             } else {
                 $msg = 'Already marked as Present';
             }
         }
 
-        // calculate attendance percentage
         $total_expected = $current_class['total_classes'] ?: 45;
-        $count_stmt = $db->conn->prepare("SELECT COUNT(*) FROM attendance_details WHERE student_id = ? AND course_id = ?");
+        $count_stmt = $db->conn->prepare("SELECT COUNT(*) FROM attendance_details WHERE student_id = ? AND course_id = ? AND status = 'Present'");
         $count_stmt->execute([$student['id'], $course_id]);
         $attended_days = $count_stmt->fetchColumn();
         $percentage = round(($attended_days / $total_expected) * 100, 1);
@@ -102,10 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
             'percentage' => $percentage . '%'
         ]);
     } else {
-        echo json_encode([
-            'success' => false,
-            'message' => "No active class for " . $student['name'] . " at " . date('h:i A'),
-            'photo' => $student['photo'] ?: 'default.png'
-        ]);
+        echo json_encode(['success' => false, 'message' => "No active class for " . $student['name'], 'photo' => $student['photo'] ?: 'default.png']);
     }
 }

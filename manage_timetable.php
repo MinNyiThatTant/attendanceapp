@@ -43,8 +43,8 @@ if (isset($_POST['save_timetable'])) {
     $timetable_id = $_POST['timetable_id'] ?? null; // update
 
     $times = [
-        1 => ['00:00:00', '21:00:59'],
-        2 => ['10:00:00', '11:00:00'],
+        1 => ['00:00:00', '10:00:59'],
+        2 => ['11:00:00', '17:00:00'],
         3 => ['11:00:00', '12:00:00'],
         4 => ['13:00:00', '14:00:00'],
         5 => ['14:00:00', '15:00:00'],
@@ -183,9 +183,18 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
                 <td><?= $t['course_name'] ?></td>
                 <td><?= date("g:i A", strtotime($t['start_time'])) ?> - <?= date("g:i A", strtotime($t['end_time'])) ?></td>
                 <td>
-                    <a href="?edit=<?= $t['id'] ?>" style="color: blue; text-decoration:none;">Edit</a> | 
-                    <a href="?delete=<?= $t['id'] ?>" style="color: red; text-decoration:none;" onclick="return confirm('ဖျက်မှာ သေချာပါသလား?')">Delete</a>
-                </td>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <a href="?edit=<?= $t['id'] ?>" class="btn-icon edit-btn" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </a>
+
+                                    <span style="color: #ddd;">|</span>
+
+                                    <a href="?delete=<?= $t['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Are you sure you want to delete this?')" title="Delete">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </a>
+                                </div>
+                            </td>
             </tr>
         <?php endforeach; ?>
     </tbody>

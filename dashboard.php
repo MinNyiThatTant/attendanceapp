@@ -1,21 +1,48 @@
 <?php
 session_start();
 require_once 'database/database.php';
+
+// Login စစ်ဆေးခြင်း
 if (empty($_SESSION["current_user"])) {
     header('Location: login.php');
     exit;
 }
+
 $db = new Database();
-$today_day = date('l');
 
-// Initial counts for first load
-$total_present = $db->conn->query("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = CURDATE() AND status = 'Present'")->fetchColumn() ?: 0;
-$total_classes = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ?");
-$total_classes->execute([$today_day]);
-$total_classes = $total_classes->fetchColumn() ?: 0;
+// အခြေခံ Variable များ သတ်မှတ်ခြင်း
+$today_day = date('l'); // Monday, Tuesday, etc.
+$current_academic_year = "2025-2026"; // လက်ရှိ Academic Year
 
+// 1. Students Present Today (ယနေ့ တက်ရောက်သူ စုစုပေါင်း)
+$total_present_sql = "SELECT COUNT(DISTINCT student_id) FROM attendance_details 
+                      WHERE on_date = CURDATE() AND status = 'Present'";
+$total_present = $db->conn->query($total_present_sql)->fetchColumn() ?: 0;
+
+// 2. Today Classes Count (လက်ရှိ Academic Year အတွက် ယနေ့ရှိသော အတန်းအရေအတွက်)
+$stmt_classes_count = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ? AND academic_year = ?");
+$stmt_classes_count->execute([$today_day, $current_academic_year]);
+$total_classes = $stmt_classes_count->fetchColumn() ?: 0;
+
+// 3. Majors List (Dashboard Cards အတွက်)
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
+
+// 4. Today Classes Table Details (ယနေ့တက်ရမည့် အတန်းများ၏ အသေးစိတ်စာရင်း)
+$sql_timetable = "SELECT t.*, c.title as course_name, c.code as course_code 
+                  FROM timetable t
+                  JOIN course_details c ON t.course_id = c.id
+                  WHERE t.day_of_week = :today 
+                  AND t.academic_year = :ayear";
+
+$stmt_timetable = $db->conn->prepare($sql_timetable);
+$stmt_timetable->execute([
+    ':today' => $today_day,
+    ':ayear' => $current_academic_year
+]);
+$today_classes = $stmt_timetable->fetchAll();
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -252,48 +279,39 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
 
 
         function submitScan(uid) {
-            if (!uid) return;
-            $('#manual_uid').val('');
+    if (!uid) return;
+    $('#manual_uid').val('');
 
-            $.post('process_scan.php', {
-                rfid_uid: uid
-            }, function(res) {
-                const data = JSON.parse(res);
-                if (data.success) {
-                    document.getElementById('audio-success').play();
-                    $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                    $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                    $('#st-name').text(data.name);
-                    $('#st-roll').text('Roll No: ' + data.roll_no);
-                    $('#st-course').text(data.course);
-                    $('#st-percentage').text(data.percentage + '%');
-                    $('#st-progress-bar').css({
-                        'width': data.percentage + '%',
-                        'background': '#10b981'
-                    });
-                } else {
-                    document.getElementById('audio-error').play();
-                    $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                    // default
-                    $('#st-photo').attr('src', 'assets/img/students/default.png');
-                    $('#st-name').text('Unknown Student');
-                    $('#st-roll').text('Roll No: -');
-                    $('#st-course').text('');
-                    $('#st-percentage').text('0%');
-                    $('#st-progress-bar').css('width', '0%');
-                }
-
-                // flex
-                $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
-
-                // 3 seconds intervel
-                setTimeout(function() {
-                    $('#scan-overlay').fadeOut(400);
-                }, 3000);
-
-                fetchLogs();
-            });
+    $.post('process_scan.php', { rfid_uid: uid }, function(res) {
+        try {
+            const data = JSON.parse(res);
+            if (data.success) {
+                document.getElementById('audio-success').play();
+                $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                $('#st-name').text(data.name);
+                $('#st-roll').text('Roll No: ' + data.roll_no);
+                $('#st-course').text(data.course);
+                $('#st-percentage').text(data.percentage);
+                $('#st-progress-bar').css({'width': data.percentage, 'background': '#10b981'});
+            } else {
+                document.getElementById('audio-error').play();
+                $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                $('#st-name').text(data.name || 'Unknown');
+                $('#st-roll').text('Roll No: -');
+                $('#st-course').text('');
+                $('#st-percentage').text('0%');
+                $('#st-progress-bar').css('width', '0%');
+            }
+            $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+            setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
+            fetchLogs();
+        } catch (e) {
+            console.error("Server Error:", res);
         }
+    });
+}
 
         function fetchLogs() {
             $.getJSON('fetch_dashboard_stats.php', function(data) {

@@ -7,7 +7,7 @@ $academic_years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-202
 $edit_student = null;
 
 // PAGINATION SETTINGS 
-$limit = 10;
+$limit = 30;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -124,6 +124,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         .page-item.active { background: #4f46e5; color: white; }
         .thumb-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -228,8 +229,17 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
                             <td><?= htmlspecialchars($s['academic_year']) ?></td>
                             <td><span class="rfid-badge"><?= $s['rfid_uid'] ?: 'Not Set' ?></span></td>
                             <td>
-                                <a href="?edit=<?= $s['id'] ?>&page=<?= $page ?>" style="color:blue;">Edit</a> |
-                                <a href="?delete=<?= $s['id'] ?>" style="color:red;" onclick="return confirm('Confirm delete?')">Delete</a>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <a href="?edit=<?= $s['id'] ?>&page=<?= $page ?>" class="btn-icon edit-btn" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </a>
+
+                                    <span style="color: #ddd;">|</span>
+
+                                    <a href="?delete=<?= $s['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Are you sure you want to delete this?')" title="Delete">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -5,13 +5,13 @@ $db = new Database();
 $conn = $db->conn;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // take data from POST
+    // POST မှ data များလှမ်းယူခြင်း
     $course_id = $_POST['course_id'];
-    $major_id = $_POST['major_id']; // hidden input for redirect
-    $academic_year = $_POST['academic_year'];
+    $major_id = $_POST['major_id']; 
+    $academic_year = $_POST['academic_year']; // အရေးကြီးသောအပိုင်း
     $date = $_POST['attendance_date'];
     $on_time = date('H:i:s');
-    $status_list = $_POST['status']; // [student_id => status]
+    $status_list = $_POST['status'] ?? []; // [student_id => status]
 
     try {
         $conn->beginTransaction();
@@ -19,24 +19,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($status_list as $student_id => $status) {
             $status = ucfirst($status); // 'present' -> 'Present'
 
-            // check if attendance record already exists
+            // Attendance record ရှိမရှိအရင်စစ်ဆေးခြင်း
             $stmt_check = $conn->prepare("SELECT id FROM attendance_details WHERE student_id = ? AND course_id = ? AND on_date = ?");
             $stmt_check->execute([$student_id, $course_id, $date]);
             $existing_id = $stmt_check->fetchColumn();
 
             if ($existing_id) {
-                // update
-                $sql = "UPDATE attendance_details SET status = ?, on_time = ? WHERE id = ?";
-                $conn->prepare($sql)->execute([$status, $on_time, $existing_id]);
+                // ရှိပြီးသားဖြစ်လျှင် Update လုပ်မည် (Academic Year ပါထည့်သွင်းမည်)
+                $sql = "UPDATE attendance_details SET status = ?, on_time = ?, academic_year = ? WHERE id = ?";
+                $conn->prepare($sql)->execute([$status, $on_time, $academic_year, $existing_id]);
             } else {
-                // insert
-                $sql = "INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status) VALUES (?, ?, ?, ?, ?)";
-                $conn->prepare($sql)->execute([$student_id, $course_id, $date, $on_time, $status]);
+                // မရှိသေးလျှင် အသစ် Insert လုပ်မည် (Academic Year ပါထည့်သွင်းမည်)
+                $sql = "INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status, academic_year) VALUES (?, ?, ?, ?, ?, ?)";
+                $conn->prepare($sql)->execute([$student_id, $course_id, $date, $on_time, $status, $academic_year]);
             }
         }
 
         $conn->commit();
-        header("Location: attendance.php?major_id=$major_id&course_id=$course_id&msg=success");
+        header("Location: attendance.php?major_id=$major_id&course_id=$course_id&academic_year=" . urlencode($academic_year) . "&msg=success");
         exit();
 
     } catch (Exception $e) {
@@ -45,8 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
 } else {
-    // if not POST, redirect to dashboard
     header("Location: dashboard.php");
     exit();
 }
-?>

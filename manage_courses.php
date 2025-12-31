@@ -83,6 +83,20 @@ if (!empty($search)) {
     $params = ["%$search%", "%$search%"];
 }
 
+// --- Pagination Logic ---
+$limit = 10; // တစ်မျက်နှာလျှင် ပြသမည့် အရေအတွက်
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+// စုစုပေါင်း Course အရေအတွက်ကို အရင်တွက်မည် (Pagination အတွက်)
+$count_sql = "SELECT COUNT(*) FROM course_details cd $search_query";
+$count_stmt = $db->conn->prepare($count_sql);
+$count_stmt->execute($params);
+$total_rows = $count_stmt->fetchColumn();
+$total_pages = ceil($total_rows / $limit);
+// ------------------------
+
+// သင်၏ မူလ SQL Query ထဲမှာ LIMIT နှင့် OFFSET ထည့်မည်
 $sql_courses = "SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as major_names 
                 FROM course_details cd 
                 LEFT JOIN session_details sd ON cd.session_id = sd.id
@@ -90,11 +104,13 @@ $sql_courses = "SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as m
                 LEFT JOIN major_details md ON ca.major_id = md.id
                 $search_query
                 GROUP BY cd.id
-                ORDER BY sd.id, cd.code";
+                ORDER BY sd.id, cd.code
+                LIMIT $limit OFFSET $offset"; // LIMIT ထည့်လိုက်သည်
 
 $stmt_courses = $db->conn->prepare($sql_courses);
 $stmt_courses->execute($params);
 $courses = $stmt_courses->fetchAll(PDO::FETCH_ASSOC);
+
 
 $sessions = $db->conn->query("SELECT * FROM session_details")->fetchAll(PDO::FETCH_ASSOC);
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
@@ -133,7 +149,34 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
             outline: none;
         }
 
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        .pagination a {
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            color: #4f46e5;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .pagination a.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+
+        .pagination a:hover:not(.active) {
+            background: #f3f4f6;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 
 <body>
@@ -221,13 +264,40 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
                             <td style="text-align:center;"><?= $c['total_classes'] ?></td>
                             <td><?= htmlspecialchars($c['term']) ?></td>
                             <td>
-                                <a href="?edit=<?= $c['id'] ?>">Edit</a> |
-                                <a href="?delete=<?= $c['id'] ?>" style="color: red;" onclick="return confirm('Sure?')">Delete</a>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <a href="?edit=<?= $c['id'] ?>" class="btn-icon edit-btn" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </a>
+
+                                    <span style="color: #ddd;">|</span>
+
+                                    <a href="?delete=<?= $c['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Are you sure you want to delete this?')" title="Delete">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">« Prev</a>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"
+                        class="<?= ($page == $i) ? 'active' : '' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next »</a>
+                <?php endif; ?>
+            </div>
+
         </div>
     </div>
 
@@ -237,28 +307,28 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
         });
     </script>
 
-<button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
+    <button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
 
     <script>
         let mybutton = document.getElementById("scrollUpBtn");
 
-        
+
         window.onscroll = function() {
             scrollFunction()
         };
 
         function scrollFunction() {
             if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                mybutton.style.display = "block"; 
+                mybutton.style.display = "block";
             } else {
-                mybutton.style.display = "none"; 
+                mybutton.style.display = "none";
             }
         }
 
         function topFunction() {
             window.scrollTo({
                 top: 0,
-                behavior: 'smooth' 
+                behavior: 'smooth'
             });
         }
     </script>

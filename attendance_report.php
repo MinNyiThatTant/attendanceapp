@@ -98,11 +98,11 @@ if ($f_course) {
         <h1>Attendance <span style="color:#4f46e5">Analytics</span></h1>
         <div style="display: flex; gap: 10px;">
             <?php if ($f_course): ?>
-                <a href="export_excel.php?major_id=<?= $f_major ?>&course_id=<?= $f_course ?>&month=<?= $f_month ?>" class="btn-excel">
-                    📊 Export Excel
-                </a>
+                <a href="export_excel.php?major_id=<?= $f_major ?>&course_id=<?= $f_course ?>&date=<?= $f_date ?>" class="btn-excel">
+    📊 Export Excel
+</a>
             <?php endif; ?>
-            <a href="dashboard.php" class="class-btn" style="text-decoration:none;">⬅ Dashboard</a>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back To Dashboard</a>
         </div>
     </header>
 

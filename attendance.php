@@ -11,7 +11,7 @@ $major_name = $_GET['major_name'] ?? 'Major';
 $semester = $_GET['semester'] ?? '';
 $course_id = $_GET['course_id'] ?? '';
 
-// reterive all semesters
+// Semester များအားလုံးကို ဆွဲထုတ်ခြင်း
 $sem_stmt = $conn->query("SELECT DISTINCT term FROM session_details ORDER BY id ASC");
 $all_semesters = $sem_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -19,7 +19,7 @@ if (empty($semester) && !empty($all_semesters)) {
     $semester = $all_semesters[0]['term'];
 }
 
-// Academic Year 
+// Academic Year သတ်မှတ်ခြင်း
 if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
     $academic_year = $_GET['academic_year'];
 } else {
@@ -28,7 +28,7 @@ if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
     $academic_year = "$currentYear-$nextYear"; 
 }
 
-// search courses for the selected major and semester
+// ရွေးချယ်ထားသော Major နှင့် Semester အတွက် ဘာသာရပ်များကို ရှာဖွေခြင်း
 $stmt_sub = $conn->prepare("
     SELECT DISTINCT cd.* FROM course_details cd 
     INNER JOIN course_assignments ca ON cd.id = ca.course_id 
@@ -38,7 +38,7 @@ $stmt_sub = $conn->prepare("
 $stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
 $subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
 
-// fetch students for the selected course, major, and academic year
+// ရွေးချယ်ထားသော ဘာသာရပ်အတွက် ကျောင်းသားများကို ဆွဲထုတ်ခြင်း
 $students = [];
 if ($course_id) {
     $stmt_std = $conn->prepare("
@@ -53,7 +53,7 @@ if ($course_id) {
 ?>
 
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Attendance - <?= htmlspecialchars($major_name) ?></title>
@@ -67,7 +67,7 @@ if ($course_id) {
                 <p style="color: #4f46e5; font-weight: bold;">AY: <?= htmlspecialchars($academic_year) ?> | <?= htmlspecialchars($semester) ?></p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="dashboard.php" class="class-btn" style="background: #6b7280; color: white; text-decoration: none;">⬅ Dashboard</a>
+                <a href="dashboard.php" class="class-btn" style="background: #6b7280; color: white; text-decoration: none;">⬅ Back To Dashboard</a>
                 <button class="logout-btn" id="btnlogout">Logout</button>
             </div>
         </header>
@@ -97,7 +97,7 @@ if ($course_id) {
         <form action="save_attendance.php" method="POST">
             <input type="hidden" name="course_id" value="<?= $course_id ?>">
             <input type="hidden" name="major_id" value="<?= $major_id ?>">
-            <input type="hidden" name="academic_year" value="<?= $academic_year ?>">
+            <input type="hidden" name="academic_year" value="<?= htmlspecialchars($academic_year) ?>">
             <input type="hidden" name="attendance_date" value="<?= date('Y-m-d') ?>">
 
             <div class="card">
@@ -108,12 +108,16 @@ if ($course_id) {
                 <?php else: ?>
                     <table class="student-table" style="width:100%">
                         <thead>
-                            <tr><th>Roll No & Name</th><th>Present</th><th>Absent</th></tr>
+                            <tr>
+                                <th>Roll No & Name</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($students as $st): ?>
                                 <tr>
-                                    <td><b><?= $st['roll_no'] ?></b><br><?= htmlspecialchars($st['name']) ?></td>
+                                    <td><b><?= htmlspecialchars($st['roll_no']) ?></b><br><?= htmlspecialchars($st['name']) ?></td>
                                     <td align="center"><input type="radio" name="status[<?= $st['id'] ?>]" value="present" checked></td>
                                     <td align="center"><input type="radio" name="status[<?= $st['id'] ?>]" value="absent"></td>
                                 </tr>

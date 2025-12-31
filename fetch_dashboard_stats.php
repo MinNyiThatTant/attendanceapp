@@ -3,45 +3,44 @@ require_once 'database/database.php';
 $db = new Database();
 
 $today_day = date('l');
+$current_academic_year = "2025-2026"; 
 
-// attendance summary calculation
+// 1. Present Count
 $stmt_present = $db->conn->prepare("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = CURDATE() AND status = 'Present'");
 $stmt_present->execute();
 $total_present = $stmt_present->fetchColumn() ?: 0;
 
-// attendance expected calculation
+// 2. Expected Count
 $stmt_total_reg = $db->conn->prepare("
     SELECT COUNT(DISTINCT cr.student_id) 
     FROM course_registration cr
     JOIN timetable t ON cr.course_id = t.course_id
-    WHERE t.day_of_week = ?
+    WHERE t.day_of_week = ? AND t.academic_year = ?
 ");
-$stmt_total_reg->execute([$today_day]);
+$stmt_total_reg->execute([$today_day, $current_academic_year]);
 $total_expected = $stmt_total_reg->fetchColumn() ?: 0;
 
-// fetch latest attendance logs
+// 3. Latest Logs
 $stmt_log = $db->conn->prepare("
-    SELECT a.on_time, s.name, c.title as course_title, a.status 
-    FROM attendance_details a
-    JOIN student_details s ON a.student_id = s.id
-    JOIN course_details c ON a.course_id = c.id
-    WHERE a.on_date = CURDATE()
-    ORDER BY a.id DESC LIMIT 10
+    SELECT ad.*, s.name as student_name, c.title as course_name 
+    FROM attendance_details ad
+    JOIN student_details s ON ad.student_id = s.id
+    JOIN course_details c ON ad.course_id = c.id
+    WHERE ad.on_date = CURDATE() 
+    AND (ad.academic_year = :ay OR ad.academic_year IS NULL)
+    ORDER BY ad.on_time DESC
 ");
-$stmt_log->execute();
+$stmt_log->execute([':ay' => $current_academic_year]); // Parameter ကို bind လုပ်လိုက်သည်
 $logs = $stmt_log->fetchAll(PDO::FETCH_ASSOC);
 
 $table_html = "";
 foreach($logs as $log) {
-    // determine status color
     $status = $log['status'];
-    // absent = red, present = green
     $color = (strtolower($status) == 'absent') ? '#ef4444' : '#10b981';
-    
     $table_html .= "<tr>
         <td>".date('h:i A', strtotime($log['on_time']))."</td>
-        <td>".htmlspecialchars($log['name'])."</td>
-        <td>".htmlspecialchars($log['course_title'])."</td>
+        <td>".htmlspecialchars($log['student_name'])."</td>
+        <td>".htmlspecialchars($log['course_name'])."</td>
         <td><span style='color: {$color}; font-weight:bold;'>● ".htmlspecialchars($status)."</span></td>
     </tr>";
 }

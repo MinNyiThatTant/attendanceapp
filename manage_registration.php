@@ -183,6 +183,7 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
             color: white;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 
 <body>
@@ -299,9 +300,18 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
                             <td><span style="color: #4f46e5; font-weight: 600;"><?= htmlspecialchars($r['code']) ?></span><br><small><?= htmlspecialchars($r['course_name']) ?></small></td>
                             <td><?= $r['academic_year'] ?></td>
                             <td><span class="badge"><?= htmlspecialchars($r['term']) ?></span></td>
-                            <td style="text-align: center;">
-                                <a href="?edit=<?= $r['id'] ?>" style="color:#4f46e5; text-decoration:none;">Edit</a> |
-                                <a href="?delete=<?= $r['id'] ?>" style="color:#ef4444; text-decoration:none;" onclick="return confirm('ဖျက်ရန် သေချာပါသလား?')">Remove</a>
+                            <td>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <a href="?edit=<?= $r['id'] ?>" class="btn-icon edit-btn" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                                    </a>
+
+                                    <span style="color: #ddd;">|</span>
+
+                                    <a href="?delete=<?= $r['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Are you sure you want to delete this?')" title="Delete">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -369,16 +379,16 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
     <script>
         let mybutton = document.getElementById("scrollUpBtn");
 
-            // Scroll event listener
+        // Scroll event listener
         window.onscroll = function() {
             scrollFunction()
         };
 
         function scrollFunction() {
             if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                mybutton.style.display = "block"; 
+                mybutton.style.display = "block";
             } else {
-                mybutton.style.display = "none"; 
+                mybutton.style.display = "none";
             }
         }
 
@@ -386,7 +396,7 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
         function topFunction() {
             window.scrollTo({
                 top: 0,
-                behavior: 'smooth' 
+                behavior: 'smooth'
             });
         }
     </script>

@@ -371,3 +371,46 @@ input[type="checkbox"] {
     font-weight: bold;
     width: 100%;
 }
+
+
+/* Button အခြေခံ ဒီဇိုင်း */
+.btn-icon {
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+/* Edit */
+.edit-btn {
+    color: #4f46e5;
+    background-color: #f5f3ff;
+    border: 1px solid #c7d2fe;
+}
+
+.edit-btn:hover {
+    background-color: #4f46e5;
+    color: white;
+}
+
+/* Delete */
+.delete-btn {
+    color: #ef4444;
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+}
+
+.delete-btn:hover {
+    background-color: #ef4444;
+    color: white;
+}
+
+/* Icon size */
+.btn-icon i {
+    font-size: 0.9rem;
+}
