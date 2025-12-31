@@ -13,21 +13,27 @@ $db = new Database();
 // အခြေခံ Variable များ သတ်မှတ်ခြင်း
 $today_day = date('l'); // Monday, Tuesday, etc.
 $current_academic_year = "2025-2026"; // လက်ရှိ Academic Year
+$today = date('Y-m-d');
 
-// 1. Students Present Today (ယနေ့ တက်ရောက်သူ စုစုပေါင်း)
+// --- FIX: for holidays check ($conn ကို $db->conn သို့ ပြောင်းလဲထားပါသည်) ---
+$check_h = $db->conn->prepare("SELECT description FROM holidays WHERE holiday_date = ?");
+$check_h->execute([$today]);
+$holiday_info = $check_h->fetch();
+
+// 1. Students Present Today
 $total_present_sql = "SELECT COUNT(DISTINCT student_id) FROM attendance_details 
                       WHERE on_date = CURDATE() AND status = 'Present'";
 $total_present = $db->conn->query($total_present_sql)->fetchColumn() ?: 0;
 
-// 2. Today Classes Count (လက်ရှိ Academic Year အတွက် ယနေ့ရှိသော အတန်းအရေအတွက်)
+// 2. Today Classes Count
 $stmt_classes_count = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ? AND academic_year = ?");
 $stmt_classes_count->execute([$today_day, $current_academic_year]);
 $total_classes = $stmt_classes_count->fetchColumn() ?: 0;
 
-// 3. Majors List (Dashboard Cards အတွက်)
+// 3. Majors List
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
 
-// 4. Today Classes Table Details (ယနေ့တက်ရမည့် အတန်းများ၏ အသေးစိတ်စာရင်း)
+// 4. Today Classes Table Details
 $sql_timetable = "SELECT t.*, c.title as course_name, c.code as course_code 
                   FROM timetable t
                   JOIN course_details c ON t.course_id = c.id
@@ -40,12 +46,10 @@ $stmt_timetable->execute([
     ':ayear' => $current_academic_year
 ]);
 $today_classes = $stmt_timetable->fetchAll();
-
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>Dashboard - Attendance System</title>
@@ -53,127 +57,24 @@ $today_classes = $stmt_timetable->fetchAll();
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .card:hover {
-            border-color: #4f46e5 !important;
-            transform: translateY(-3px);
-            transition: 0.3s;
-            cursor: pointer;
+        .card:hover { border-color: #4f46e5 !important; transform: translateY(-3px); transition: 0.3s; cursor: pointer; }
+        .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        #scan-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .scan-card { width: 450px; text-align: center; padding: 30px; border-radius: 25px; background: white; }
+        .progress-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 80%; margin: 15px auto; overflow: hidden; }
+        .progress-fill { height: 100%; background: #4f46e5; width: 0%; transition: width 1s ease-out; }
+        .nav-link-btn { text-decoration: none; background: #f3f4f6; padding: 10px 15px; border-radius: 8px; color: #374151; font-weight: 500; font-size: 0.9rem; transition: 0.2s; }
+        
+        /* Holiday Alert Box Style */
+        .holiday-alert {
+            background: #fee2e2; border-left: 6px solid #ef4444; color: #991b1b;
+            padding: 20px; border-radius: 12px; margin-bottom: 25px;
+            display: flex; align-items: center; gap: 15px;
+            animation: pulse 2s infinite;
         }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        #scan-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-
-        .scan-card {
-            width: 450px;
-            text-align: center;
-            padding: 30px;
-            border-radius: 25px;
-            background: white;
-        }
-
-        .progress-container {
-            background: #e5e7eb;
-            border-radius: 10px;
-            height: 12px;
-            width: 80%;
-            margin: 15px auto;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #4f46e5;
-            width: 0%;
-            transition: width 1s ease-out;
-        }
-
-        .nav-link-btn {
-            text-decoration: none;
-            background: #f3f4f6;
-            padding: 10px 15px;
-            border-radius: 8px;
-            color: #374151;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: 0.2s;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
-
-            100% {
-                opacity: 1;
-            }
-        }
-
-
-        #scan-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 9999;
-
-
-            display: none;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(8px);
-        }
-
-
-        .scan-card {
-            width: 90%;
-            max-width: 450px;
-            text-align: center;
-            padding: 40px 30px;
-            border-radius: 30px;
-            background: white;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-            animation: scaleIn 0.3s ease-out;
-        }
-
-        @keyframes scaleIn {
-            from {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
-
 <body>
     <div class="container">
         <div class="card" style="margin-bottom:20px; display:flex; justify-content: space-between; align-items: center; padding: 15px 25px;">
@@ -184,14 +85,25 @@ $today_classes = $stmt_timetable->fetchAll();
                 <a href="manage_registration.php" class="nav-link-btn">📝 Registration</a>
                 <a href="attendance_report.php" class="nav-link-btn">📊 Reports</a>
                 <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
+                <a href="holidays.php" class="nav-link-btn">🎉 Holidays</a>
             </div>
             <a href="logout.php" style="background:#ef4444; color:white; text-decoration:none; padding:10px 20px; border-radius:8px;">Logout</a>
         </div>
 
+        <?php if ($holiday_info): ?>
+            <div class="holiday-alert">
+                <span style="font-size: 30px;">🎊</span>
+                <div>
+                    <h3 style="margin:0;">Today is a Holiday: <?= htmlspecialchars($holiday_info['description']) ?></h3>
+                    <p style="margin:5px 0 0 0; font-size: 0.9rem;">Attendance scanning is temporarily disabled for today.</p>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="card" style="margin-bottom: 25px; border: 2px dashed #4f46e5; display: flex; align-items: center; justify-content: center; gap: 15px; padding: 20px;">
             <span style="font-weight: bold; color: #4f46e5;">📡 RFID Scanner:</span>
-            <input type="text" id="manual_uid" autofocus placeholder="Waiting for scan..." style="padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 250px;">
-            <button onclick="submitScan(document.getElementById('manual_uid').value)" style="padding: 12px 25px; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">Scan</button>
+            <input type="text" id="manual_uid" autofocus placeholder="<?= $holiday_info ? 'Scanner Disabled' : 'Waiting for scan...' ?>" <?= $holiday_info ? 'disabled' : '' ?> style="padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 250px;">
+            <button onclick="submitScan(document.getElementById('manual_uid').value)" <?= $holiday_info ? 'disabled style="opacity:0.5"' : '' ?> style="padding: 12px 25px; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">Scan</button>
         </div>
 
         <div id="scan-overlay">
@@ -217,12 +129,6 @@ $today_classes = $stmt_timetable->fetchAll();
                 <div style="color: #3730a3; font-size: 0.8rem; font-weight: bold;">Classes Today</div>
                 <div style="font-size: 2.2rem; font-weight: bold; color: #4338ca;"><?= $total_classes ?></div>
             </div>
-            <!-- <div class="card" style="border-left: 5px solid #0891b2; background: #ecfeff;">
-                <div style="color: #155e75; font-size: 0.8rem; font-weight: bold;">System Status</div>
-                <div style="font-size: 1.1rem; color: #0891b2; margin-top: 10px;">
-                    <span style="display: inline-block; width: 10px; height: 10px; background: #10b981; border-radius: 50%; animation: pulse 1.5s infinite;"></span> Monitoring Live
-                </div>
-            </div> -->
         </div>
 
         <div class="main-grid">
@@ -256,62 +162,78 @@ $today_classes = $stmt_timetable->fetchAll();
     </div>
 
     <script>
-        let attendanceChart;
+        // dashboard.php ရဲ့ <script> အပိုင်းထဲမှာ ထည့်ရန်
+let last_attendance_id = 0; // နောက်ဆုံးပြခဲ့တဲ့ ID ကို မှတ်ထားမယ်
 
-        let audioUnlocked = false;
+function checkForNewScan() {
+    $.getJSON('fetch_latest_entry.php', function(data) {
+        if (data.success && data.entry_id > last_attendance_id) {
+            
+            // ၁။ ID အသစ်ဖြစ်ရင် Popup ပြမယ်
+            $('#scan-status').text('✅ Attendance Marked!').css('color', '#10b981');
+            $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+            $('#st-name').text(data.name);
+            $('#st-roll').text('Roll No: ' + data.roll_no);
+            $('#st-course').text(data.course);
+            $('#st-percentage').text(data.percentage + '%');
+            $('#st-progress-bar').css({'width': data.percentage + '%', 'background': '#10b981'});
 
-        function unlockAudio() {
-            if (audioUnlocked) return;
-
-            // unlock all audio elements
-            const sounds = ['audio-success', 'audio-error', 'audio-warning'];
-            sounds.forEach(id => {
-                const audio = document.getElementById(id);
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(e => {
-                    console.log("Audio unlock waiting for first interaction");
-                });
-            });
-            audioUnlocked = true;
-        }
-
-
-        function submitScan(uid) {
-    if (!uid) return;
-    $('#manual_uid').val('');
-
-    $.post('process_scan.php', { rfid_uid: uid }, function(res) {
-        try {
-            const data = JSON.parse(res);
-            if (data.success) {
-                document.getElementById('audio-success').play();
-                $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                $('#st-name').text(data.name);
-                $('#st-roll').text('Roll No: ' + data.roll_no);
-                $('#st-course').text(data.course);
-                $('#st-percentage').text(data.percentage);
-                $('#st-progress-bar').css({'width': data.percentage, 'background': '#10b981'});
-            } else {
-                document.getElementById('audio-error').play();
-                $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                $('#st-name').text(data.name || 'Unknown');
-                $('#st-roll').text('Roll No: -');
-                $('#st-course').text('');
-                $('#st-percentage').text('0%');
-                $('#st-progress-bar').css('width', '0%');
-            }
+            // ၂။ Overlay ကို ဖော်လိုက်မယ်
             $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+            
+            // ၃။ အောင်မြင်တဲ့အသံ ဖွင့်မယ်
+            document.getElementById('audio-success').play();
+
+            // ၄။ ၃ စက္ကန့်နေရင် ပြန်ပိတ်မယ်
             setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
+
+            // ၅။ အခု ID ကို နောက်ဆုံး ID အဖြစ် မှတ်ထားမယ် (ထပ်ခါထပ်ခါ မပေါ်အောင်)
+            last_attendance_id = data.entry_id;
+            
+            // ၆။ အောက်က Log Table နဲ့ Chart ကိုပါ Update လုပ်မယ်
             fetchLogs();
-        } catch (e) {
-            console.error("Server Error:", res);
         }
     });
 }
+
+// ၂ စက္ကန့်တစ်ခါ စစ်ပေးပါ
+setInterval(checkForNewScan, 30000);
+
+        let attendanceChart;
+        let audioUnlocked = false;
+
+        function submitScan(uid) {
+            if (!uid) return;
+            $('#manual_uid').val('');
+
+            $.post('process_scan.php', { rfid_uid: uid }, function(res) {
+                try {
+                    const data = JSON.parse(res);
+                    if (data.success) {
+                        document.getElementById('audio-success').play();
+                        $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                        $('#st-name').text(data.name);
+                        $('#st-roll').text('Roll No: ' + data.roll_no);
+                        $('#st-course').text(data.course);
+                        $('#st-percentage').text(data.percentage);
+                        $('#st-progress-bar').css({'width': data.percentage, 'background': '#10b981'});
+                    } else {
+                        document.getElementById('audio-error').play();
+                        $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                        $('#st-name').text(data.name || 'Unknown');
+                        $('#st-roll').text('Roll No: -');
+                        $('#st-course').text('');
+                        $('#st-percentage').text('0%');
+                        $('#st-progress-bar').css('width', '0%');
+                    }
+                    $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+                    setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
+                    fetchLogs();
+                } catch (e) { console.error("Server Error:", res); }
+            });
+        }
 
         function fetchLogs() {
             $.getJSON('fetch_dashboard_stats.php', function(data) {
@@ -328,7 +250,6 @@ $today_classes = $stmt_timetable->fetchAll();
         }
 
         $(document).ready(function() {
-            // Chart Initializing
             const ctx = document.getElementById('todayAttendanceChart').getContext('2d');
             attendanceChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -340,18 +261,20 @@ $today_classes = $stmt_timetable->fetchAll();
                         borderWidth: 0
                     }]
                 },
-                options: {
-                    cutout: '75%'
-                }
+                options: { cutout: '75%' }
             });
 
-            // 5 seconds time intervel
             setInterval(fetchLogs, 5000);
             fetchLogs();
 
-            // Enter
             $('#manual_uid').on('keypress', function(e) {
                 if (e.which == 13) submitScan($(this).val());
+            });
+            
+            $(document).one('click', function() {
+                document.querySelectorAll('audio').forEach(a => {
+                    a.play().then(() => { a.pause(); a.currentTime = 0; });
+                });
             });
         });
     </script>
@@ -360,5 +283,4 @@ $today_classes = $stmt_timetable->fetchAll();
     <audio id="audio-error" src="assets/audio/error.mp3" preload="auto"></audio>
     <audio id="audio-warning" src="assets/audio/warning.mp3" preload="auto"></audio>
 </body>
-
 </html>
