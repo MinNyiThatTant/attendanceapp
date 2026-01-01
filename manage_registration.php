@@ -29,32 +29,33 @@ if (isset($_POST['import_csv'])) {
     $course_id = $_POST['import_course_id'];
     $filename = $_FILES["reg_file"]["tmp_name"];
 
-    // session_id fetch
-    $stmt_sess = $conn->prepare("SELECT session_id FROM course_details WHERE id = ?");
-    $stmt_sess->execute([$course_id]);
-    $session_id = $stmt_sess->fetchColumn();
+    // course details fetch (session and academic_year)
+    $stmt_c = $conn->prepare("SELECT session_id, academic_year FROM course_details WHERE id = ?");
+    $stmt_c->execute([$course_id]);
+    $course_info = $stmt_c->fetch(PDO::FETCH_ASSOC);
 
-    if ($_FILES["reg_file"]["size"] > 0) {
+    if ($_FILES["reg_file"]["size"] > 0 && $course_info) {
         $file = fopen($filename, "r");
         fgetcsv($file); // Header skip
         while (($column = fgetcsv($file, 1000, ",")) !== FALSE) {
             $student_roll = $column[0];
 
-            // take student_id and academic_year
             $st_stmt = $conn->prepare("SELECT id, academic_year FROM student_details WHERE roll_no = ?");
             $st_stmt->execute([$student_roll]);
             $student_data = $st_stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($student_data) {
-                $student_id = $student_data['id'];
-                $academic_year = $student_data['academic_year'];
+                // Check if Academic Year matches before importing
+                if ($student_data['academic_year'] === $course_info['academic_year']) {
+                    $student_id = $student_data['id'];
+                    $academic_year = $student_data['academic_year'];
 
-                // Duplicate check
-                $check = $conn->prepare("SELECT id FROM course_registration WHERE student_id=? AND course_id=? AND academic_year=?");
-                $check->execute([$student_id, $course_id, $academic_year]);
-                if (!$check->fetch()) {
-                    $sql = "INSERT INTO course_registration (student_id, course_id, session_id, academic_year) VALUES (?, ?, ?, ?)";
-                    $conn->prepare($sql)->execute([$student_id, $course_id, $session_id, $academic_year]);
+                    $check = $conn->prepare("SELECT id FROM course_registration WHERE student_id=? AND course_id=? AND academic_year=?");
+                    $check->execute([$student_id, $course_id, $academic_year]);
+                    if (!$check->fetch()) {
+                        $sql = "INSERT INTO course_registration (student_id, course_id, session_id, academic_year) VALUES (?, ?, ?, ?)";
+                        $conn->prepare($sql)->execute([$student_id, $course_id, $course_info['session_id'], $academic_year]);
+                    }
                 }
             }
         }
@@ -68,42 +69,47 @@ if (isset($_POST['import_csv'])) {
 if (isset($_POST['save_registration'])) {
     $student_id = $_POST['student_id'];
     $course_id = $_POST['course_id'];
-    $academic_year = $_POST['academic_year']; // Readonly input from student
+    $student_academic_year = $_POST['academic_year']; 
     $reg_id = $_POST['reg_id'];
 
-    $stmt_sess = $conn->prepare("SELECT session_id FROM course_details WHERE id = ?");
-    $stmt_sess->execute([$course_id]);
-    $session_id = $stmt_sess->fetchColumn();
+    // Fetch Course details to verify Academic Year matching
+    $stmt_course = $conn->prepare("SELECT session_id, academic_year FROM course_details WHERE id = ?");
+    $stmt_course->execute([$course_id]);
+    $course_data = $stmt_course->fetch(PDO::FETCH_ASSOC);
+
+    if (!$course_data) {
+        echo "<script>alert('Error: Course မတွေ့ရှိပါ။'); window.location='manage_registration.php';</script>";
+        exit();
+    }
+
+    // *** BLOCK MISMATCHING ACADEMIC YEARS ***
+    if ($student_academic_year !== $course_data['academic_year']) {
+        echo "<script>alert('Error: ကျောင်းသား၏ Academic Year ($student_academic_year) နှင့် Course ၏ Year ({$course_data['academic_year']}) မကိုက်ညီပါ။'); window.location='manage_registration.php';</script>";
+        exit();
+    }
+
+    $session_id = $course_data['session_id'];
 
     if (empty($reg_id)) {
-        // Duplicate check
         $check = $conn->prepare("SELECT id FROM course_registration WHERE student_id=? AND course_id=? AND academic_year=?");
-        $check->execute([$student_id, $course_id, $academic_year]);
+        $check->execute([$student_id, $course_id, $student_academic_year]);
 
         if ($check->fetch()) {
-            echo "<script>alert('Error: ဤကျောင်းသားသည် ဤဘာသာရပ်အတွက် Register လုပ်ပြီးသားဖြစ်နေပါသည်။'); window.location='manage_registration.php';</script>";
+            echo "<script>alert('Error: ဤကျောင်းသားသည် Register လုပ်ပြီးသားဖြစ်နေပါသည်။'); window.location='manage_registration.php';</script>";
             exit();
         }
 
         $sql = "INSERT INTO course_registration (student_id, course_id, session_id, academic_year) VALUES (?, ?, ?, ?)";
-        $conn->prepare($sql)->execute([$student_id, $course_id, $session_id, $academic_year]);
+        $conn->prepare($sql)->execute([$student_id, $course_id, $session_id, $student_academic_year]);
     } else {
         $sql = "UPDATE course_registration SET student_id=?, course_id=?, session_id=?, academic_year=? WHERE id=?";
-        $conn->prepare($sql)->execute([$student_id, $course_id, $session_id, $academic_year, $reg_id]);
+        $conn->prepare($sql)->execute([$student_id, $course_id, $session_id, $student_academic_year, $reg_id]);
     }
     header("Location: manage_registration.php?msg=success");
     exit();
 }
 
-// Edit Fetch 
-$edit_reg = null;
-if (isset($_GET['edit'])) {
-    $stmt = $conn->prepare("SELECT * FROM course_registration WHERE id = ?");
-    $stmt->execute([$_GET['edit']]);
-    $edit_reg = $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-// Search & Pagination Logic 
+// Fetch Data for list and dropdowns
 $search = $_GET['search'] ?? '';
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -135,57 +141,33 @@ if ($search) $stmt_reg->bindValue(':s', "%$search%");
 $stmt_reg->execute();
 $registrations = $stmt_reg->fetchAll(PDO::FETCH_ASSOC);
 
-// For dropdowns
 $students = $conn->query("SELECT s.*, m.title as major_name FROM student_details s LEFT JOIN major_details m ON s.major_id = m.id ORDER BY s.name ASC")->fetchAll(PDO::FETCH_ASSOC);
-$courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors FROM course_details cd JOIN session_details sd ON cd.session_id = sd.id")->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch courses with Academic Year included
+$courses = $conn->query("SELECT cd.*, sd.term, cd.academic_year as course_ay, (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors FROM course_details cd JOIN session_details sd ON cd.session_id = sd.id")->fetchAll(PDO::FETCH_ASSOC);
+
+$edit_reg = null;
+if (isset($_GET['edit'])) {
+    $stmt = $conn->prepare("SELECT * FROM course_registration WHERE id = ?");
+    $stmt->execute([$_GET['edit']]);
+    $edit_reg = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 ?>
 
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>Course Registration</title>
     <link rel="stylesheet" href="css/attendance.css">
     <style>
-        .readonly-box {
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            color: #374151;
-            font-weight: bold;
-            cursor: not-allowed;
-        }
-
-        .import-section {
-            background: #eff6ff;
-            border: 1px dashed #3b82f6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-top: 20px;
-        }
-
-        .page-link {
-            padding: 8px 12px;
-            border: 1px solid #4f46e5;
-            color: #4f46e5;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-
-        .page-link.active {
-            background: #4f46e5;
-            color: white;
-        }
+        .readonly-box { background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; font-weight: bold; cursor: not-allowed; }
+        .import-section { background: #eff6ff; border: 1px dashed #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
+        .page-link { padding: 8px 12px; border: 1px solid #4f46e5; color: #4f46e5; text-decoration: none; border-radius: 4px; }
+        .page-link.active { background: #4f46e5; color: white; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
-
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -195,26 +177,25 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
                     <input type="text" name="search" placeholder="Search..." value="<?= htmlspecialchars($search) ?>" class="input-box" style="width:200px; margin:0;">
                     <button type="submit" class="class-btn">🔍</button>
                 </form>
-                <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back To Dashboard</a>
+                <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back</a>
             </div>
         </header>
 
         <div class="import-section">
-            <h3 style="margin-top:0;">📤 Bulk Registration via CSV</h3>
-            <form method="POST" enctype="multipart/form-data" style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
+            <h3>📤 Bulk Registration via CSV</h3>
+            <form method="POST" enctype="multipart/form-data" style="display:flex; gap:15px; align-items:flex-end;">
                 <div>
-                    <label style="display:block; font-size:12px;">1. Select Course</label>
+                    <label style="display:block; font-size:12px;">Course</label>
                     <select name="import_course_id" required class="input-box" style="width:200px;">
                         <?php foreach ($courses as $c): ?>
-                            <option value="<?= $c['id'] ?>"><?= $c['code'] ?> - <?= $c['title'] ?></option>
+                            <option value="<?= $c['id'] ?>"><?= $c['code'] ?> - <?= $c['title'] ?> (<?= $c['academic_year'] ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block; font-size:12px;">2. CSV File (RollNo only)</label>
                     <input type="file" name="reg_file" accept=".csv" required>
                 </div>
-                <button type="submit" name="import_csv" class="register-btn">Upload & Register</button>
+                <button type="submit" name="import_csv" class="register-btn">Upload</button>
             </form>
         </div>
 
@@ -255,8 +236,9 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
                                     <option value="<?= $c['id'] ?>"
                                         data-majors="<?= $c['assigned_majors'] ?>"
                                         data-semester="<?= $c['term'] ?>"
+                                        data-ay="<?= $c['course_ay'] ?>"
                                         <?= (isset($edit_reg) && $edit_reg['course_id'] == $c['id']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($c['code']) ?> - <?= htmlspecialchars($c['title']) ?> (<?= $c['term'] ?>)
+                                        <?= htmlspecialchars($c['code']) ?> - <?= htmlspecialchars($c['title'] ?? '') ?> (<?= $c['course_ay'] ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -269,67 +251,39 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
                     </div>
 
                     <div class="btn-row">
-                        <?php if ($edit_reg): ?><a href="manage_registration.php" class="class-btn" style="background:#6b7280; text-decoration:none;">Cancel</a><?php endif; ?>
-                        <button type="submit" name="save_registration" class="register-btn"><?= $edit_reg ? 'Update' : 'Confirm' ?> Registration</button>
+                        <button type="submit" name="save_registration" class="register-btn"><?= $edit_reg ? 'Update' : 'Confirm' ?></button>
                     </div>
                 </div>
             </form>
         </div>
 
-        <div class="table-title">Student Course List (Total: <?= $total_rows ?>)</div>
-        <div class="card" style="padding: 0; overflow: hidden;">
-            <table class="student-table" style="margin: 0;">
+        <div class="card" style="margin-top:20px;">
+            <table class="student-table">
                 <thead>
                     <tr>
                         <th>Student</th>
                         <th>Course</th>
                         <th>Academic Year</th>
                         <th>Semester</th>
-                        <th style="text-align: center;">Action</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($registrations)): ?>
-                        <tr>
-                            <td colspan="5" style="text-align:center; padding:20px;">No records found.</td>
-                        </tr>
-                    <?php endif; ?>
                     <?php foreach ($registrations as $r): ?>
                         <tr>
                             <td><strong><?= htmlspecialchars($r['name']) ?></strong><br><small><?= htmlspecialchars($r['roll_no']) ?></small></td>
-                            <td><span style="color: #4f46e5; font-weight: 600;"><?= htmlspecialchars($r['code']) ?></span><br><small><?= htmlspecialchars($r['course_name']) ?></small></td>
+                            <td><span style="color: #4f46e5;"><?= htmlspecialchars($r['code']) ?></span></td>
                             <td><?= $r['academic_year'] ?></td>
                             <td><span class="badge"><?= htmlspecialchars($r['term']) ?></span></td>
                             <td>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <a href="?edit=<?= $r['id'] ?>" class="btn-icon edit-btn" title="Edit">
-                                        <i class="fa-solid fa-pen-to-square"></i> Edit
-                                    </a>
-
-                                    <span style="color: #ddd;">|</span>
-
-                                    <a href="?delete=<?= $r['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Are you sure you want to delete this?')" title="Delete">
-                                        <i class="fa-solid fa-trash-can"></i> Delete
-                                    </a>
-                                </div>
+                                <a href="?edit=<?= $r['id'] ?>" class="btn-icon edit-btn"><i class="fa-solid fa-pen"></i></a>
+                                <a href="?delete=<?= $r['id'] ?>" class="btn-icon delete-btn" onclick="return confirm('Confirm delete?')"><i class="fa-solid fa-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-
-        <div style="margin-top:20px;">
-            <a href="?clear_all=true" class="class-btn" style="background:#ef4444; text-decoration:none;" onclick="return confirm('Register လုပ်ထားသမျှ အားလုံးကို ဖျက်မှာ သေချာပါသလား?')">🗑 Clear All Data</a>
-        </div>
-
-        <?php if ($total_pages > 1): ?>
-            <div class="pagination">
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="page-link <?= ($page == $i) ? 'active' : '' ?>"><?= $i ?></a>
-                <?php endfor; ?>
-            </div>
-        <?php endif; ?>
     </div>
 
     <script>
@@ -349,57 +303,30 @@ $courses = $conn->query("SELECT cd.*, sd.term, (SELECT GROUP_CONCAT(major_id) FR
             var selectedMajorId = String(selectedOption.getAttribute('data-major-id'));
             var selectedMajorName = selectedOption.getAttribute('data-major-name');
             var selectedSem = String(selectedOption.getAttribute('data-semester'));
-            var selectedAY = selectedOption.getAttribute('data-ay'); // Student's AY
+            var selectedAY = selectedOption.getAttribute('data-ay'); 
 
             majorDisplay.value = selectedMajorName;
-            ayDisplay.value = selectedAY; // Auto-fill Academic Year
+            ayDisplay.value = selectedAY; 
 
-            // Filter courses based on major and semester
             for (var i = 0; i < courseSelect.options.length; i++) {
                 var option = courseSelect.options[i];
                 if (option.value === "") continue;
 
                 var assignedMajorsStr = option.getAttribute('data-majors') || "";
                 var courseSem = option.getAttribute('data-semester');
+                var courseAY = option.getAttribute('data-ay');
                 var majorsArray = assignedMajorsStr.split(',');
 
-                if (majorsArray.includes(selectedMajorId) && courseSem === selectedSem) {
+                // Filter logic: Major match AND Semester match AND Academic Year match
+                if (majorsArray.includes(selectedMajorId) && courseSem === selectedSem && courseAY === selectedAY) {
                     option.style.display = 'block';
                 } else {
                     option.style.display = 'none';
+                    if(courseSelect.value == option.value) courseSelect.value = "";
                 }
             }
         }
-        // Run on load for edit mode
         window.onload = filterCourses;
     </script>
-
-    <button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
-
-    <script>
-        let mybutton = document.getElementById("scrollUpBtn");
-
-        // Scroll event listener
-        window.onscroll = function() {
-            scrollFunction()
-        };
-
-        function scrollFunction() {
-            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                mybutton.style.display = "block";
-            } else {
-                mybutton.style.display = "none";
-            }
-        }
-
-
-        function topFunction() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-    </script>
 </body>
-
 </html>

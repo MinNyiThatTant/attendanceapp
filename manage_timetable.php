@@ -43,8 +43,8 @@ if (isset($_POST['save_timetable'])) {
     $timetable_id = $_POST['timetable_id'] ?? null; // update
 
     $times = [
-        1 => ['19:00:00', '20:00:59'],
-        2 => ['20:00:00', '21:00:59'],
+        1 => ['00:00:00', '13:00:59'],
+        2 => ['13:00:00', '15:00:59'],
         3 => ['21:00:00', '22:00:59'],
         4 => ['22:00:00', '23:00:59'],
         5 => ['14:00:00', '15:00:00'],
@@ -129,7 +129,8 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
     <label>Academic Year</label>
     <select name="academic_year" required>
         <?php 
-        $ay_list = ["2024-2025", "2025-2026", "2026-2027"];
+        $ay_list = ["2024-2025", "2025-2026", "2026-2027", 
+                    "2027-2028", "2028-2029", "2029-2030"];
         foreach($ay_list as $ay): ?>
             <option value="<?= $ay ?>" <?= (isset($edit_timetable) && $edit_timetable['academic_year'] == $ay) ? 'selected' : '' ?>><?= $ay ?></option>
         <?php endforeach; ?>

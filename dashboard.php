@@ -10,12 +10,25 @@ if (empty($_SESSION["current_user"])) {
 
 $db = new Database();
 
-// အခြေခံ Variable များ သတ်မှတ်ခြင်း
+// --- အခြေခံ Variable များ သတ်မှတ်ခြင်း ---
 $today_day = date('l'); // Monday, Tuesday, etc.
-$current_academic_year = "2025-2026"; // လက်ရှိ Academic Year
 $today = date('Y-m-d');
+$current_month = (int)date('m');
+$current_year = (int)date('Y');
 
-// --- FIX: for holidays check ($conn ကို $db->conn သို့ ပြောင်းလဲထားပါသည်) ---
+
+/**
+ * နည်းလမ်း (၂) - Academic Year ကို အလိုအလျောက် တွက်ချက်ခြင်း
+ * ဥပမာ- ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ် (2025-2026)
+ * ဇွန်လ ကနေစပြီး နောက်ပိုင်းဆိုရင် လက်ရှိနှစ်-နောက်နှစ် (2026-2027)
+ */
+if ($current_month < 6) {
+    $current_academic_year = ($current_year - 1) . "-" . $current_year;
+} else {
+    $current_academic_year = $current_year . "-" . ($current_year + 1);
+}
+
+// --- Holiday Check ---
 $check_h = $db->conn->prepare("SELECT description FROM holidays WHERE holiday_date = ?");
 $check_h->execute([$today]);
 $holiday_info = $check_h->fetch();
@@ -25,7 +38,12 @@ $total_present_sql = "SELECT COUNT(DISTINCT student_id) FROM attendance_details
                       WHERE on_date = CURDATE() AND status = 'Present'";
 $total_present = $db->conn->query($total_present_sql)->fetchColumn() ?: 0;
 
-// 2. Today Classes Count
+// Today Leaves
+$today_leaves = $db->conn->prepare("SELECT COUNT(*) FROM student_leaves WHERE ? BETWEEN from_date AND to_date");
+$today_leaves->execute([$today]);
+$total_leaves = $today_leaves->fetchColumn() ?: 0;
+
+// 2. Today Classes Count (Dynamic Year နဲ့ စစ်ထုတ်ခြင်း)
 $stmt_classes_count = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ? AND academic_year = ?");
 $stmt_classes_count->execute([$today_day, $current_academic_year]);
 $total_classes = $stmt_classes_count->fetchColumn() ?: 0;
@@ -64,28 +82,27 @@ $today_classes = $stmt_timetable->fetchAll();
         .progress-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 80%; margin: 15px auto; overflow: hidden; }
         .progress-fill { height: 100%; background: #4f46e5; width: 0%; transition: width 1s ease-out; }
         .nav-link-btn { text-decoration: none; background: #f3f4f6; padding: 10px 15px; border-radius: 8px; color: #374151; font-weight: 500; font-size: 0.9rem; transition: 0.2s; }
-        
-        /* Holiday Alert Box Style */
-        .holiday-alert {
-            background: #fee2e2; border-left: 6px solid #ef4444; color: #991b1b;
-            padding: 20px; border-radius: 12px; margin-bottom: 25px;
-            display: flex; align-items: center; gap: 15px;
-            animation: pulse 2s infinite;
-        }
+        .holiday-alert { background: #fee2e2; border-left: 6px solid #ef4444; color: #991b1b; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .ay-badge { background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card" style="margin-bottom:20px; display:flex; justify-content: space-between; align-items: center; padding: 15px 25px;">
-            <div style="display:flex; gap:12px; flex-wrap: wrap;">
-                <a href="manage_majors.php" class="nav-link-btn">⚙️ Majors</a>
-                <a href="manage_courses.php" class="nav-link-btn">📚 Courses</a>
-                <a href="manage_students.php" class="nav-link-btn">👨‍🎓 Students</a>
-                <a href="manage_registration.php" class="nav-link-btn">📝 Registration</a>
-                <a href="attendance_report.php" class="nav-link-btn">📊 Reports</a>
-                <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
-                <a href="holidays.php" class="nav-link-btn">🎉 Holidays</a>
+            <div style="display:flex; gap:12px; flex-wrap: wrap; align-items: center;">
+                <h2 style="margin:0; font-size: 1.2rem;">Dashboard</h2>
+                <span class="ay-badge">AY: <?= $current_academic_year ?></span>
+                <div style="display:flex; gap:8px; margin-left:15px;">
+                    <a href="manage_majors.php" class="nav-link-btn">⚙️ Majors</a>
+                    <a href="manage_courses.php" class="nav-link-btn">📚 Courses</a>
+                    <a href="manage_students.php" class="nav-link-btn">👨‍🎓 Students</a>
+                    <a href="manage_registration.php" class="nav-link-btn">📝 Registration</a>
+                    <a href="attendance_report.php" class="nav-link-btn">📊 Reports</a>
+                    <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
+                    <a href="holidays.php" class="nav-link-btn">🎉 Holidays</a>
+                    <a href="manage_leaves.php" class="nav-link-btn">🏥 Leave</a>
+                </div>
             </div>
             <a href="logout.php" style="background:#ef4444; color:white; text-decoration:none; padding:10px 20px; border-radius:8px;">Logout</a>
         </div>
@@ -121,14 +138,26 @@ $today_classes = $stmt_timetable->fetchAll();
         </div>
 
         <div class="summary-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div class="card" style="border-left: 5px solid #10b981; background: #f0fdf4;">
-                <div style="color: #065f46; font-size: 0.8rem; font-weight: bold;">Students Present Today</div>
-                <div id="present-count-display" style="font-size: 2.2rem; font-weight: bold; color: #047857;"><?= $total_present ?></div>
-            </div>
-            <div class="card" style="border-left: 5px solid #4f46e5; background: #f5f3ff;">
-                <div style="color: #3730a3; font-size: 0.8rem; font-weight: bold;">Classes Today</div>
-                <div style="font-size: 2.2rem; font-weight: bold; color: #4338ca;"><?= $total_classes ?></div>
-            </div>
+            <a href="attendance_report.php?view=today_present" style="text-decoration: none;">
+                <div class="card card-hover" style="border-left: 5px solid #10b981; background: #f0fdf4;">
+                    <div style="color: #065f46; font-size: 0.8rem; font-weight: bold;">Students Present Today</div>
+                    <div id="present-count-display" style="font-size: 2.2rem; font-weight: bold; color: #047857;"><?= $total_present ?></div>
+                </div>
+            </a>
+
+            <a href="manage_timetable.php" style="text-decoration: none;">
+                <div class="card card-hover" style="border-left: 5px solid #4f46e5; background: #f5f3ff;">
+                    <div style="color: #3730a3; font-size: 0.8rem; font-weight: bold;">Classes Today (<?= $current_academic_year ?>)</div>
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #4338ca;"><?= $total_classes ?></div>
+                </div>
+            </a>
+
+            <a href="manage_leaves.php" style="text-decoration: none;">
+                <div class="card card-hover" style="border-left: 5px solid #f59e0b; background: #fffbeb;">
+                    <div style="color: #92400e; font-size: 0.8rem; font-weight: bold;">On Leave Today</div>
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #b45309;"><?= $total_leaves ?></div>
+                </div>
+            </a>
         </div>
 
         <div class="main-grid">
@@ -162,78 +191,8 @@ $today_classes = $stmt_timetable->fetchAll();
     </div>
 
     <script>
-        // dashboard.php ရဲ့ <script> အပိုင်းထဲမှာ ထည့်ရန်
-let last_attendance_id = 0; // နောက်ဆုံးပြခဲ့တဲ့ ID ကို မှတ်ထားမယ်
-
-function checkForNewScan() {
-    $.getJSON('fetch_latest_entry.php', function(data) {
-        if (data.success && data.entry_id > last_attendance_id) {
-            
-            // ၁။ ID အသစ်ဖြစ်ရင် Popup ပြမယ်
-            $('#scan-status').text('✅ Attendance Marked!').css('color', '#10b981');
-            $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-            $('#st-name').text(data.name);
-            $('#st-roll').text('Roll No: ' + data.roll_no);
-            $('#st-course').text(data.course);
-            $('#st-percentage').text(data.percentage + '%');
-            $('#st-progress-bar').css({'width': data.percentage + '%', 'background': '#10b981'});
-
-            // ၂။ Overlay ကို ဖော်လိုက်မယ်
-            $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
-            
-            // ၃။ အောင်မြင်တဲ့အသံ ဖွင့်မယ်
-            document.getElementById('audio-success').play();
-
-            // ၄။ ၃ စက္ကန့်နေရင် ပြန်ပိတ်မယ်
-            setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
-
-            // ၅။ အခု ID ကို နောက်ဆုံး ID အဖြစ် မှတ်ထားမယ် (ထပ်ခါထပ်ခါ မပေါ်အောင်)
-            last_attendance_id = data.entry_id;
-            
-            // ၆။ အောက်က Log Table နဲ့ Chart ကိုပါ Update လုပ်မယ်
-            fetchLogs();
-        }
-    });
-}
-
-// ၂ စက္ကန့်တစ်ခါ စစ်ပေးပါ
-setInterval(checkForNewScan, 30000);
-
+        let last_attendance_id = 0;
         let attendanceChart;
-        let audioUnlocked = false;
-
-        function submitScan(uid) {
-            if (!uid) return;
-            $('#manual_uid').val('');
-
-            $.post('process_scan.php', { rfid_uid: uid }, function(res) {
-                try {
-                    const data = JSON.parse(res);
-                    if (data.success) {
-                        document.getElementById('audio-success').play();
-                        $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                        $('#st-name').text(data.name);
-                        $('#st-roll').text('Roll No: ' + data.roll_no);
-                        $('#st-course').text(data.course);
-                        $('#st-percentage').text(data.percentage);
-                        $('#st-progress-bar').css({'width': data.percentage, 'background': '#10b981'});
-                    } else {
-                        document.getElementById('audio-error').play();
-                        $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                        $('#st-name').text(data.name || 'Unknown');
-                        $('#st-roll').text('Roll No: -');
-                        $('#st-course').text('');
-                        $('#st-percentage').text('0%');
-                        $('#st-progress-bar').css('width', '0%');
-                    }
-                    $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
-                    setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
-                    fetchLogs();
-                } catch (e) { console.error("Server Error:", res); }
-            });
-        }
 
         function fetchLogs() {
             $.getJSON('fetch_dashboard_stats.php', function(data) {
@@ -249,17 +208,43 @@ setInterval(checkForNewScan, 30000);
             });
         }
 
+        function submitScan(uid) {
+            if (!uid) return;
+            $('#manual_uid').val('');
+            $.post('process_scan.php', { rfid_uid: uid }, function(res) {
+                try {
+                    const data = JSON.parse(res);
+                    if (data.success) {
+                        document.getElementById('audio-success').play();
+                        $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                        $('#st-name').text(data.name);
+                        $('#st-roll').text('Roll No: ' + data.roll_no);
+                        $('#st-course').text(data.course);
+                        $('#st-percentage').text(data.percentage);
+                        $('#st-progress-bar').css({ 'width': data.percentage, 'background': '#10b981' });
+                    } else {
+                        document.getElementById('audio-error').play();
+                        $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                        $('#st-photo').attr('src', 'assets/img/students/default.png');
+                        $('#st-name').text(data.name || 'Unknown');
+                        $('#st-percentage').text('0%');
+                        $('#st-progress-bar').css('width', '0%');
+                    }
+                    $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+                    setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
+                    fetchLogs();
+                } catch (e) { console.error("Server Error:", res); }
+            });
+        }
+
         $(document).ready(function() {
             const ctx = document.getElementById('todayAttendanceChart').getContext('2d');
             attendanceChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Present', 'Absent'],
-                    datasets: [{
-                        data: [0, 1],
-                        backgroundColor: ['#10b981', '#e5e7eb'],
-                        borderWidth: 0
-                    }]
+                    datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#e5e7eb'], borderWidth: 0 }]
                 },
                 options: { cutout: '75%' }
             });
@@ -270,10 +255,10 @@ setInterval(checkForNewScan, 30000);
             $('#manual_uid').on('keypress', function(e) {
                 if (e.which == 13) submitScan($(this).val());
             });
-            
+
             $(document).one('click', function() {
                 document.querySelectorAll('audio').forEach(a => {
-                    a.play().then(() => { a.pause(); a.currentTime = 0; });
+                    a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(()=>{});
                 });
             });
         });
@@ -281,6 +266,5 @@ setInterval(checkForNewScan, 30000);
 
     <audio id="audio-success" src="assets/audio/success.mp3" preload="auto"></audio>
     <audio id="audio-error" src="assets/audio/error.mp3" preload="auto"></audio>
-    <audio id="audio-warning" src="assets/audio/warning.mp3" preload="auto"></audio>
 </body>
 </html>

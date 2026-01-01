@@ -40,7 +40,8 @@ $holidays = $conn->query("SELECT * FROM holidays ORDER BY holiday_date DESC")->f
 <head>
     <meta charset="UTF-8">
     <title>Manage Holidays</title>
-    <link rel="stylesheet" href="css/attendance.css"> <style>
+    <link rel="stylesheet" href="css/attendance.css"> 
+    <style>
         .h-container { max-width: 900px; margin: 30px auto; padding: 20px; }
         .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .h-table { width: 100%; border-collapse: collapse; margin-top: 20px; }

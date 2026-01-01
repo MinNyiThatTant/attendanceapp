@@ -20,13 +20,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         exit;
     }
 
-    // 2. ကျောင်းသား အချက်အလက် ရှာဖွေခြင်း
+    // 2. ကျောင်းသား အချက်အလက် ရှာဖွေခြင်း (ဒီမှာ အရင်ရှာရမှာပါ)
     $stmt = $db->conn->prepare("SELECT id, name, roll_no, major_id, photo FROM student_details WHERE rfid_uid = ?");
     $stmt->execute([$uid]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$student) {
-        echo json_encode(['success' => false, 'message' => 'Invalid RFID Card!']);
+        echo json_encode(['success' => false, 'message' => 'Invalid RFID Card!', 'photo' => 'default.png']);
+        exit;
+    }
+
+    // --- ကျောင်းသားတွေ့မှ ခွင့်ရက်ရှိမရှိ စစ်ဆေးခြင်း (FIXED) ---
+    $check_leave = $db->conn->prepare("SELECT leave_type FROM student_leaves WHERE student_id = ? AND ? BETWEEN from_date AND to_date");
+    $check_leave->execute([$student['id'], $date]);
+    $leave_info = $check_leave->fetch();
+
+    if ($leave_info) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Student is currently on ' . $leave_info['leave_type'] . ' Leave!',
+            'photo' => $student['photo'] ?: 'default.png'
+        ]);
         exit;
     }
 
@@ -41,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
     }
 
     // 4. လက်ရှိအချိန်မှာ ရှိနေတဲ့ အတန်း (Class Slot) ကို ရှာဖွေခြင်း
-    // start_time မတိုင်ခင် ၁၅ မိနစ် ကြိုဖတ်လို့ရအောင် DATE_SUB ထည့်ထားသည်
     $time_sql = "SELECT t.id as timetable_id, t.course_id, t.period, t.end_time, c.title as course_title, c.total_classes 
                  FROM timetable t
                  JOIN course_details c ON t.course_id = c.id
@@ -59,8 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         $course_id = $current_class['course_id'];
         $timetable_id = $current_class['timetable_id'];
 
-        // Attendance သွင်းသည့် Logic (Function အနေနဲ့ ခွဲမထုတ်ဘဲ ဒီထဲမှာပဲ ရေးထားသည်)
-        // Note: အတန်းချိန် တစ်ခုချင်းစီအတွက် Record သီးသန့်ဖြစ်စေရန် timetable_id ပါ သိမ်းသင့်သည်
         $check = $db->conn->prepare("SELECT id, status FROM attendance_details WHERE student_id = ? AND course_id = ? AND on_date = ? AND timetable_id = ?");
         $check->execute([$student['id'], $course_id, $date, $timetable_id]);
         $existing_attendance = $check->fetch(PDO::FETCH_ASSOC);
@@ -80,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
                      AND academic_year = ?
                      AND major_id = ?
                      AND start_time >= ? 
-                     AND start_time <= ADDTIME(?, '00:15:00')"; // အတန်းနှစ်ခုကြား ၁၅ မိနစ်ထက် မပိုသော ပွဲစဉ်များ
+                     AND start_time <= ADDTIME(?, '00:15:00')";
         
         $stmt_next = $db->conn->prepare($sql_next);
         $stmt_next->execute([$day_of_week, $course_id, $current_academic_year, $student['major_id'], $current_class['end_time'], $current_class['end_time']]);
@@ -88,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
 
         if ($next_class) {
             $next_tid = $next_class['next_timetable_id'];
-            // Duplicate မဖြစ်အောင် ထပ်စစ်ပြီးမှ သွင်းသည်
             $check_next = $db->conn->prepare("SELECT id FROM attendance_details WHERE student_id = ? AND on_date = ? AND timetable_id = ?");
             $check_next->execute([$student['id'], $date, $next_tid]);
             if (!$check_next->fetch()) {
@@ -117,7 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         ]);
 
     } else {
-        // အတန်းမရှိချိန် Scan ဖတ်ပါက ပြသမည့်စာ
         echo json_encode([
             'success' => false, 
             'message' => "No active class for " . $student['name'], 

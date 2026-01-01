@@ -414,3 +414,14 @@ input[type="checkbox"] {
 .btn-icon i {
     font-size: 0.9rem;
 }
+
+.card-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px); /* နည်းနည်းလေး ကြွတက်လာမယ် */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* အရိပ်လေး ပေါ်လာမယ် */
+    filter: brightness(0.98); /* အရောင် နည်းနည်းလေး ရင့်သွားမယ် */
+}

@@ -19,14 +19,21 @@ if (empty($semester) && !empty($all_semesters)) {
     $semester = $all_semesters[0]['term'];
 }
 
-// Academic Year သတ်မှတ်ခြင်း
+// --- Dynamic Academic Year Logic ပြင်ဆင်ထားသောအပိုင်း ---
 if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
     $academic_year = $_GET['academic_year'];
 } else {
-    $currentYear = date('Y');
-    $nextYear = $currentYear + 1;
-    $academic_year = "$currentYear-$nextYear"; 
+    $current_month = (int)date('m');
+    $current_year = (int)date('Y');
+
+    // ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ် (ဥပမာ- 2025-2026)
+    if ($current_month < 6) {
+        $academic_year = ($current_year - 1) . "-" . $current_year;
+    } else {
+        $academic_year = $current_year . "-" . ($current_year + 1);
+    }
 }
+// ---------------------------------------------------
 
 // ရွေးချယ်ထားသော Major နှင့် Semester အတွက် ဘာသာရပ်များကို ရှာဖွေခြင်း
 $stmt_sub = $conn->prepare("
@@ -109,7 +116,7 @@ if ($course_id) {
                     <table class="student-table" style="width:100%">
                         <thead>
                             <tr>
-                                <th>Roll No & Name</th>
+                                <th style="text-align: left;">Roll No & Name</th>
                                 <th>Present</th>
                                 <th>Absent</th>
                             </tr>
