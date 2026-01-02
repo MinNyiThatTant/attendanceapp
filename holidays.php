@@ -41,6 +41,7 @@ $holidays = $conn->query("SELECT * FROM holidays ORDER BY holiday_date DESC")->f
     <meta charset="UTF-8">
     <title>Manage Holidays</title>
     <link rel="stylesheet" href="css/attendance.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         .h-container { max-width: 900px; margin: 30px auto; padding: 20px; }
         .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -55,8 +56,8 @@ $holidays = $conn->query("SELECT * FROM holidays ORDER BY holiday_date DESC")->f
 
 <div class="h-container">
     <header class="attendance-header">
-            <h1>🎉 Holiday <span style="color:#4f46e5">Management</span></h1>
-            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back To Dashboard</a>
+            <h1>🎉 Manage <span style="color:#4f46e5">Holidays</span></h1>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
 
     <div class="card">

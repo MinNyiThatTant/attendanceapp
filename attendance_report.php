@@ -129,6 +129,7 @@ $params = [
     <meta charset="UTF-8">
     <title>Attendance Report</title>
     <link rel="stylesheet" href="css/attendance.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-box { padding: 15px; border-radius: 8px; color: white; text-align: center; }
@@ -140,12 +141,12 @@ $params = [
 
 <div class="container">
     <header class="attendance-header" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>Attendance <span style="color:#4f46e5">Analytics</span></h1>
+        <h1>📊 Attendance <span style="color:#4f46e5">Report</span></h1>
         <div style="display: flex; gap: 10px;">
             <?php if ($f_course): ?>
                 <a href="export_excel.php?major_id=<?= $f_major ?>&course_id=<?= $f_course ?>&report_type=<?= $f_type ?>&date=<?= $f_date ?>&month=<?= $f_month ?>" class="btn-excel">📊 Export Excel</a>
             <?php endif; ?>
-            <a href="dashboard.php" class="save-btn" style="text-decoration:none; background:#94a3b8; color:white; padding:10px 15px; border-radius:5px;">⬅ Back</a>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </div>
     </header>
 

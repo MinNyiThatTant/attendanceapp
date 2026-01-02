@@ -129,13 +129,13 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
 <body>
     <div class="container">
         <header class="attendance-header">
-            <h1>Manage <span style="color:#4f46e5">Students</span></h1>
+            <h1>👨‍🎓 Manage <span style="color:#4f46e5">Students</span></h1>
             <div class="search-group" style="display:flex; gap:10px; align-items:center;">
                 <form method="GET" style="display:flex; gap:5px;">
                     <input type="text" name="search" placeholder="Search..." value="<?= htmlspecialchars($search) ?>" class="input-box" style="margin:0; width:180px;">
                     <button type="submit" class="class-btn">🔍</button>
                 </form>
-                <a href="dashboard.php" class="class-btn" style="background:lightblue; text-decoration:none;">⬅ Back To Dashboard</a>
+                <a href="dashboard.php" class="class-btn" style="background:lightblue; text-decoration:none;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
             </div>
         </header>
 

@@ -77,8 +77,8 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
 
     <div class="leave-container">
         <header class="attendance-header">
-            <h2>🏥 Leave <span style="color:#4f46e5">Management</span></h2>
-            <a href="dashboard.php" style="text-decoration:none; background:#f3f4f6; padding:8px 15px; border-radius:8px; color:#333;">⬅ Back to Dashboard</a>
+            <h2>🏥 Manage <span style="color:#4f46e5">Leaves</span></h2>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
         
         <?php if (isset($_GET['success'])): ?>

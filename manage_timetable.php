@@ -45,7 +45,7 @@ if (isset($_POST['save_timetable'])) {
     $times = [
         1 => ['00:00:00', '13:00:59'],
         2 => ['13:00:00', '15:00:59'],
-        3 => ['21:00:00', '22:00:59'],
+        3 => ['21:00:00', '21:59:59'],
         4 => ['22:00:00', '23:00:59'],
         5 => ['14:00:00', '15:00:00'],
         6 => ['15:00:00', '16:00:59']
@@ -78,6 +78,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
 <head>
     <title>Manage Timetable</title>
     <link rel="stylesheet" href="css/attendance.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         .form-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
         .btn-save { background: #4f46e5; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; grid-column: span 2; font-weight: bold; font-size: 1rem; }
@@ -90,7 +91,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
     <div class="container">
         <header class="attendance-header">
             <h1>📅 Manage <span style="color:#4f46e5">Timetable</span></h1>
-            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">⬅ Back To Dashboard</a>
+            <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
 
         <form method="POST" class="form-container">

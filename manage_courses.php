@@ -6,6 +6,15 @@ $db = new Database();
 $edit_course = null;
 $assigned_majors = [];
 
+// --- academic_year သတ်မှတ်တဲ့ PHP Logic (Form ရဲ့ အပေါ်မှာ ထည့်ထားပါ) ---
+$current_month = (int)date('m');
+$current_year = (int)date('Y');
+if ($current_month < 6) {
+    $auto_ay = ($current_year - 1) . "-" . $current_year;
+} else {
+    $auto_ay = $current_year . "-" . ($current_year + 1);
+}
+
 // --- 1. DELETE LOGIC ---
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
@@ -128,13 +137,13 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
 <body>
     <div class="container">
         <header class="attendance-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>Manage <span style="color:#4f46e5">Courses</span></h1>
+            <h1>📚 Manage <span style="color:#4f46e5">Courses</span></h1>
             <div style="display: flex; gap: 10px;">
                 <form method="GET" style="display: flex; gap: 5px;">
                     <input type="text" name="search" placeholder="Search..." value="<?= htmlspecialchars($search) ?>" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
                     <button type="submit" class="class-btn">🔍</button>
                 </form>
-                <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:#6b7280; color:white;">⬅ Back</a>
+                <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
             </div>
         </header>
 
@@ -169,15 +178,23 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
                         </select>
                     </div>
                     <div>
-                        <label class="input-label">Academic Year</label>
-                        <select name="academic_year" required style="width:100%; padding:8px;">
-                            <?php 
-                            $years = ["2023-2024", "2024-2025", "2025-2026", "2026-2027"];
-                            foreach($years as $y): ?>
-                                <option value="<?= $y ?>" <?= (isset($edit_course) && $edit_course['academic_year'] == $y) ? 'selected' : ($y == '2024-2025' ? 'selected' : '') ?>><?= $y ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+    <label class="input-label">Academic Year</label>
+    <select name="academic_year" required style="width:100%; padding:8px;">
+        <?php 
+        $years = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"];
+        foreach($years as $y): 
+            // Edit လုပ်နေရင် Data ဟောင်းပြမယ်၊ အသစ်ဆိုရင် Dynamic Year ကို Default ထားမယ်
+            $selected = "";
+            if (isset($edit_course)) {
+                if ($edit_course['academic_year'] == $y) $selected = "selected";
+            } else {
+                if ($y == $auto_ay) $selected = "selected";
+            }
+        ?>
+            <option value="<?= $y ?>" <?= $selected ?>><?= $y ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
                     <div>
                         <label class="input-label">Total Classes</label>
                         <input type="number" name="total_classes" required value="<?= $edit_course['total_classes'] ?? '45' ?>" style="width:100%; padding:8px;">
