@@ -19,4 +19,17 @@ class Database
         }
 
     }
+
+
+    // database/database.php 
+public function getAcademicYear() {
+    $month = (int)date('m');
+    $year = (int)date('Y');
+    // ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ်
+    if ($month < 6) {
+        return ($year - 1) . "-" . $year;
+    } else {
+        return $year . "-" . ($year + 1);
+    }
+}
 }

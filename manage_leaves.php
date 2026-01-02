@@ -11,16 +11,17 @@ if (isset($_POST['save_leave'])) {
     $leave_type = $_POST['leave_type'];
     $reason = $_POST['reason'];
     $leave_id = $_POST['leave_id'];
+    $current_academic_year = $db->getAcademicYear();
 
     if (!empty($leave_id)) {
         // Update လုပ်ခြင်း
-        $stmt = $db->conn->prepare("UPDATE student_leaves SET student_id=?, from_date=?, to_date=?, leave_type=?, reason=? WHERE id=?");
-        $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, $leave_id]);
+        $stmt = $db->conn->prepare("UPDATE student_leaves SET student_id=?, from_date=?, to_date=?, leave_type=?, reason=?, academic_year=? WHERE id=?");
+        $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, $current_academic_year]);
         $msg = "updated=1";
     } else {
         // အသစ်ထည့်ခြင်း
         $stmt = $db->conn->prepare("INSERT INTO student_leaves (student_id, from_date, to_date, leave_type, reason, academic_year) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, "2025-2026"]);
+        $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, $current_academic_year]);
         $msg = "success=1";
     }
     header("Location: manage_leaves.php?$msg");

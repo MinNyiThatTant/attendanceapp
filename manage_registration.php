@@ -28,8 +28,11 @@ if (isset($_GET['delete'])) {
 if (isset($_POST['import_csv'])) {
     $course_id = $_POST['import_course_id'];
     $filename = $_FILES["reg_file"]["tmp_name"];
+    $current_academic_year = $db->getAcademicYear();
 
     // course details fetch (session and academic_year)
+    $stmt = $conn->prepare("INSERT INTO course_registration (student_id, course_id, academic_year) VALUES (?, ?, ?)");
+    $stmt->execute([$student_id, $course_id, $current_academic_year]);
     $stmt_c = $conn->prepare("SELECT session_id, academic_year FROM course_details WHERE id = ?");
     $stmt_c->execute([$course_id]);
     $course_info = $stmt_c->fetch(PDO::FETCH_ASSOC);
@@ -69,7 +72,7 @@ if (isset($_POST['import_csv'])) {
 if (isset($_POST['save_registration'])) {
     $student_id = $_POST['student_id'];
     $course_id = $_POST['course_id'];
-    $student_academic_year = $_POST['academic_year']; 
+    $student_academic_year = $_POST['academic_year'];
     $reg_id = $_POST['reg_id'];
 
     // Fetch Course details to verify Academic Year matching
@@ -156,18 +159,50 @@ if (isset($_GET['edit'])) {
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Course Registration</title>
     <link rel="stylesheet" href="css/attendance.css">
     <style>
-        .readonly-box { background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; font-weight: bold; cursor: not-allowed; }
-        .import-section { background: #eff6ff; border: 1px dashed #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
-        .page-link { padding: 8px 12px; border: 1px solid #4f46e5; color: #4f46e5; text-decoration: none; border-radius: 4px; }
-        .page-link.active { background: #4f46e5; color: white; }
+        .readonly-box {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
+        .import-section {
+            background: #eff6ff;
+            border: 1px dashed #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .page-link {
+            padding: 8px 12px;
+            border: 1px solid #4f46e5;
+            color: #4f46e5;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .page-link.active {
+            background: #4f46e5;
+            color: white;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
+
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -288,45 +323,52 @@ if (isset($_GET['edit'])) {
 
     <script>
         function filterCourses() {
-            var studentSelect = document.getElementById('student_id');
-            var courseSelect = document.getElementById('course_id');
-            var majorDisplay = document.getElementById('display_major');
-            var ayDisplay = document.getElementById('display_ay');
+    var studentSelect = document.getElementById('student_id');
+    var courseSelect = document.getElementById('course_id');
+    var majorDisplay = document.getElementById('display_major');
+    var ayDisplay = document.getElementById('display_ay');
 
-            if (studentSelect.value === "") {
-                majorDisplay.value = "";
-                ayDisplay.value = "";
-                return;
-            }
+    if (studentSelect.value === "") {
+        majorDisplay.value = "";
+        ayDisplay.value = "";
+        return;
+    }
 
-            var selectedOption = studentSelect.options[studentSelect.selectedIndex];
-            var selectedMajorId = String(selectedOption.getAttribute('data-major-id'));
-            var selectedMajorName = selectedOption.getAttribute('data-major-name');
-            var selectedSem = String(selectedOption.getAttribute('data-semester'));
-            var selectedAY = selectedOption.getAttribute('data-ay'); 
+    var selectedOption = studentSelect.options[studentSelect.selectedIndex];
+    var selectedMajorId = String(selectedOption.getAttribute('data-major-id'));
+    var selectedMajorName = selectedOption.getAttribute('data-major-name');
+    var selectedSem = String(selectedOption.getAttribute('data-semester'));
+    var selectedAY = selectedOption.getAttribute('data-ay');
 
-            majorDisplay.value = selectedMajorName;
-            ayDisplay.value = selectedAY; 
+    majorDisplay.value = selectedMajorName;
+    ayDisplay.value = selectedAY;
 
-            for (var i = 0; i < courseSelect.options.length; i++) {
-                var option = courseSelect.options[i];
-                if (option.value === "") continue;
+    let hasVisibleCourse = false;
 
-                var assignedMajorsStr = option.getAttribute('data-majors') || "";
-                var courseSem = option.getAttribute('data-semester');
-                var courseAY = option.getAttribute('data-ay');
-                var majorsArray = assignedMajorsStr.split(',');
+    for (var i = 0; i < courseSelect.options.length; i++) {
+        var option = courseSelect.options[i];
+        if (option.value === "") continue;
 
-                // Filter logic: Major match AND Semester match AND Academic Year match
-                if (majorsArray.includes(selectedMajorId) && courseSem === selectedSem && courseAY === selectedAY) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                    if(courseSelect.value == option.value) courseSelect.value = "";
-                }
+        var assignedMajorsStr = option.getAttribute('data-majors') || "";
+        var courseSem = String(option.getAttribute('data-semester'));
+        var courseAY = option.getAttribute('data-ay');
+        var majorsArray = assignedMajorsStr.split(',');
+
+        // စစ်ဆေးချက် - Major ကိုက်ညီရမည် + Semester ကိုက်ညီရမည် + Academic Year ကိုက်ညီရမည်
+        if (majorsArray.includes(selectedMajorId) && courseSem === selectedSem && courseAY === selectedAY) {
+            option.style.display = 'block';
+            hasVisibleCourse = true;
+        } else {
+            option.style.display = 'none';
+            // အကယ်၍ လက်ရှိ select လုပ်ထားတာက hide လုပ်မယ့်ဟာဖြစ်နေရင် select ကို reset ချမယ်
+            if (courseSelect.value === option.value) {
+                courseSelect.value = "";
             }
         }
+    }
+}
         window.onload = filterCourses;
     </script>
 </body>
+
 </html>

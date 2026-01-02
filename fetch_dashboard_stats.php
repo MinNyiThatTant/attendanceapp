@@ -3,22 +3,23 @@ require_once 'database/database.php';
 $db = new Database();
 
 $today_day = date('l');
-$current_academic_year = "2025-2026"; 
+$current_academic_year = $db->getAcademicYear(); // 2025-2026 လို့ manual ရေးမယ့်အစား သုံးပါ
 
 // 1. Present Count
-$stmt_present = $db->conn->prepare("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = CURDATE() AND status = 'Present'");
-$stmt_present->execute();
+$stmt_present = $db->conn->prepare("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = CURDATE() AND status = 'Present' AND academic_year = ?");
+$stmt_present->execute([$current_academic_year]);
 $total_present = $stmt_present->fetchColumn() ?: 0;
 
-// 2. Expected Count
+// 2. Expected Count (ကျောင်းသား Register လုပ်ထားတဲ့ အရေအတွက်အတိုင်းပြမယ်)
 $stmt_total_reg = $db->conn->prepare("
     SELECT COUNT(DISTINCT cr.student_id) 
     FROM course_registration cr
     JOIN timetable t ON cr.course_id = t.course_id
-    WHERE t.day_of_week = ? AND t.academic_year = ?
+    WHERE t.day_of_week = ? AND cr.academic_year = ?
 ");
 $stmt_total_reg->execute([$today_day, $current_academic_year]);
 $total_expected = $stmt_total_reg->fetchColumn() ?: 0;
+
 
 // 3. Latest Logs
 $stmt_log = $db->conn->prepare("

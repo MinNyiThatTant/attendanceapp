@@ -64,6 +64,7 @@ $stmt_timetable->execute([
     ':ayear' => $current_academic_year
 ]);
 $today_classes = $stmt_timetable->fetchAll();
+
 ?>
 
 <!DOCTYPE html>

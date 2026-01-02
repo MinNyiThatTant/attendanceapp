@@ -5,6 +5,7 @@ $db = new Database();
 
 $edit_course = null;
 $assigned_majors = [];
+$auto_ay = $db->getAcademicYear();
 
 // --- academic_year သတ်မှတ်တဲ့ PHP Logic (Form ရဲ့ အပေါ်မှာ ထည့်ထားပါ) ---
 $current_month = (int)date('m');
@@ -179,21 +180,16 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
                     </div>
                     <div>
     <label class="input-label">Academic Year</label>
-    <select name="academic_year" required style="width:100%; padding:8px;">
-        <?php 
-        $years = ["2023-2024", "2024-2025", "2025-2026", "2026-2027", "2027-2028"];
-        foreach($years as $y): 
-            // Edit လုပ်နေရင် Data ဟောင်းပြမယ်၊ အသစ်ဆိုရင် Dynamic Year ကို Default ထားမယ်
-            $selected = "";
-            if (isset($edit_course)) {
-                if ($edit_course['academic_year'] == $y) $selected = "selected";
-            } else {
-                if ($y == $auto_ay) $selected = "selected";
-            }
-        ?>
-            <option value="<?= $y ?>" <?= $selected ?>><?= $y ?></option>
-        <?php endforeach; ?>
-    </select>
+<select name="academic_year" required style="width:100%; padding:8px;">
+    <?php 
+    $current_ay = $db->getAcademicYear();
+    $years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
+    foreach($years as $y): ?>
+        <option value="<?= $y ?>" <?= (isset($edit_course) && $edit_course['academic_year'] == $y) ? 'selected' : ($y == $current_ay ? 'selected' : '') ?>>
+            <?= $y ?>
+        </option>
+    <?php endforeach; ?>
+</select>
 </div>
                     <div>
                         <label class="input-label">Total Classes</label>
@@ -261,26 +257,22 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
             </table>
 
             <?php if ($total_pages > 1): ?>
-            <div class="pagination">
-                <?php if ($page > 1): ?>
-                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">« Prev</a>
-                <?php endif; ?>
+<div class="pagination">
+    <?php if ($page > 1): ?>
+        <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">« Prev</a>
+    <?php endif; ?>
 
-                <?php 
-                $start = max(1, $page - 2);
-                $end = min($total_pages, $page + 2);
-                for ($i = $start; $i <= $end; $i++): 
-                ?>
-                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="<?= ($page == $i) ? 'active' : '' ?>">
-                        <?= $i ?>
-                    </a>
-                <?php endfor; ?>
+    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+        <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="<?= ($page == $i) ? 'active' : '' ?>">
+            <?= $i ?>
+        </a>
+    <?php endfor; ?>
 
-                <?php if ($page < $total_pages): ?>
-                    <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next »</a>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
+    <?php if ($page < $total_pages): ?>
+        <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next »</a>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
         </div>
     </div>
 

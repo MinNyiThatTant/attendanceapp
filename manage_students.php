@@ -12,20 +12,28 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// CSV IMPORT LOGIC 
+// --- CSV IMPORT LOGIC ပြင်ဆင်ရန် ---
 if (isset($_POST['import_csv'])) {
     $filename = $_FILES["student_file"]["tmp_name"];
     if ($_FILES["student_file"]["size"] > 0) {
         $file = fopen($filename, "r");
         fgetcsv($file); 
         $stmt = $db->conn->prepare("INSERT INTO student_details (roll_no, name, major_id, current_semester, academic_year, photo) VALUES (?, ?, ?, ?, ?, 'default.png')");
+        
+        $error_count = 0;
         while (($column = fgetcsv($file, 1000, ",")) !== FALSE) {
             if(count($column) >= 5) {
-                $stmt->execute([$column[0], $column[1], $column[2], $column[3], $column[4]]);
+                try {
+                    $stmt->execute([$column[0], $column[1], $column[2], $column[3], $column[4]]);
+                } catch (PDOException $e) {
+                    if ($e->getCode() == 23000) { $error_count++; } // Duplicate roll no တွေ့ရင် ရေတွက်ထားမယ်
+                    else { throw $e; }
+                }
             }
         }
         fclose($file);
-        header("Location: manage_students.php?msg=imported");
+        $msg = ($error_count > 0) ? "imported_with_errors" : "imported";
+        header("Location: manage_students.php?msg=$msg&err_qty=$error_count");
         exit();
     }
 }
@@ -66,19 +74,29 @@ if (isset($_POST['save_student'])) {
         move_uploaded_file($_FILES["photo"]["tmp_name"], $target_dir . $photo_name);
     }
 
-    if (!empty($student_id)) {
-        // UPDATE 
-        $sql = "UPDATE student_details SET roll_no=?, name=?, major_id=?, current_semester=?, academic_year=?, rfid_uid=?, photo=? WHERE id=?";
-        $db->conn->prepare($sql)->execute([$roll, $name, $major_id, $current_semester, $academic_year, $rfid_uid, $photo_name, $student_id]);
-        $msg = "updated";
-    } else {
-        // INSERT 
-        $sql = "INSERT INTO student_details (roll_no, name, major_id, current_semester, academic_year, rfid_uid, photo) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        $db->conn->prepare($sql)->execute([$roll, $name, $major_id, $current_semester, $academic_year, $rfid_uid, $photo_name]);
-        $msg = "success";
+    try {
+        if (!empty($student_id)) {
+            // UPDATE
+            $sql = "UPDATE student_details SET roll_no=?, name=?, major_id=?, current_semester=?, academic_year=?, rfid_uid=?, photo=? WHERE id=?";
+            $db->conn->prepare($sql)->execute([$roll, $name, $major_id, $current_semester, $academic_year, $rfid_uid, $photo_name, $student_id]);
+            $msg = "updated";
+        } else {
+            // INSERT
+            $sql = "INSERT INTO student_details (roll_no, name, major_id, current_semester, academic_year, rfid_uid, photo) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $db->conn->prepare($sql)->execute([$roll, $name, $major_id, $current_semester, $academic_year, $rfid_uid, $photo_name]);
+            $msg = "success";
+        }
+        header("Location: manage_students.php?msg=$msg");
+        exit();
+    } catch (PDOException $e) {
+        if ($e->getCode() == 23000) {
+            // Roll No ထပ်နေရင် msg=duplicate ဆိုပြီး ပြန်ပို့မယ်
+            header("Location: manage_students.php?msg=duplicate&roll=$roll");
+            exit();
+        } else {
+            die("Error: " . $e->getMessage());
+        }
     }
-    header("Location: manage_students.php?msg=$msg");
-    exit();
 }
 
 // SEARCH & DATA FETCHING
@@ -125,6 +143,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         .thumb-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="container">
@@ -277,5 +296,44 @@ function topFunction() {
   });
 }
 </script>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
+    const roll = urlParams.get('roll');
+    const errQty = urlParams.get('err_qty');
+
+    if (msg === 'duplicate') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Roll No ထပ်နေပါသည်!',
+            text: `Roll No (${roll}) သည် စနစ်ထဲတွင် ရှိနှင့်ပြီးသား ဖြစ်နေပါသည်။`,
+            confirmButtonColor: '#4f46e5'
+        });
+    } else if (msg === 'success') {
+        Swal.fire({
+            icon: 'success',
+            title: 'အောင်မြင်ပါသည်',
+            text: 'ကျောင်းသားသစ်ကို မှတ်ပုံတင်ပြီးပါပြီ။',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } else if (msg === 'imported_with_errors') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Import ပြီးပါပြီ',
+            text: `အချို့ကျောင်းသားများ (${errQty} ယောက်) သည် Roll No ထပ်နေသဖြင့် Import မလုပ်နိုင်ခဲ့ပါ။`,
+            confirmButtonColor: '#4f46e5'
+        });
+    } else if (msg === 'updated') {
+        Swal.fire({
+            icon: 'success',
+            title: 'ပြင်ဆင်ပြီးပါပြီ',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+</script>
+
 </body>
 </html>

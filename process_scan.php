@@ -1,8 +1,6 @@
 <?php
 require_once 'database/database.php';
 $db = new Database();
-
-// အချိန်ဇုန် သတ်မှတ်ခြင်း
 date_default_timezone_set('Asia/Yangon');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
@@ -10,49 +8,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
     $date = date('Y-m-d');
     $current_time = date('H:i:s');
     $day_of_week = date('l');
+    $current_academic_year = $db->getAcademicYear(); // Dynamic Year ရယူခြင်း
 
-    // 1. Holiday ရှိမရှိ အရင်စစ်ဆေးခြင်း
+    // 1. Holiday စစ်ဆေးခြင်း
     $check_holiday = $db->conn->prepare("SELECT description FROM holidays WHERE holiday_date = ?");
     $check_holiday->execute([$date]);
-    $holiday = $check_holiday->fetch(PDO::FETCH_ASSOC);
-    if ($holiday) {
+    if ($holiday = $check_holiday->fetch()) {
         echo json_encode(['success' => false, 'message' => 'Today is a Holiday: ' . $holiday['description']]);
         exit;
     }
 
-    // 2. ကျောင်းသား အချက်အလက် ရှာဖွေခြင်း (ဒီမှာ အရင်ရှာရမှာပါ)
+    // 2. ကျောင်းသားရှာဖွေခြင်း
     $stmt = $db->conn->prepare("SELECT id, name, roll_no, major_id, photo FROM student_details WHERE rfid_uid = ?");
     $stmt->execute([$uid]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$student) {
-        echo json_encode(['success' => false, 'message' => 'Invalid RFID Card!', 'photo' => 'default.png']);
+        echo json_encode(['success' => false, 'message' => 'Unregistered RFID Card!']);
         exit;
     }
 
-    // --- ကျောင်းသားတွေ့မှ ခွင့်ရက်ရှိမရှိ စစ်ဆေးခြင်း (FIXED) ---
-    $check_leave = $db->conn->prepare("SELECT leave_type FROM student_leaves WHERE student_id = ? AND ? BETWEEN from_date AND to_date");
-    $check_leave->execute([$student['id'], $date]);
-    $leave_info = $check_leave->fetch();
+    // 3. (အရေးကြီးဆုံးအပိုင်း) Timetable + Course Registration ကို တွဲစစ်ခြင်း
+    // ကျောင်းသားက ဒီနှစ်မှာ ဒီဘာသာရပ်ကို Register လုပ်ထားမှသာ Timetable ပေါ်မှာ Attendance ပေးမယ်
+    $stmt_class = $db->conn->prepare("
+        SELECT t.id as tid, c.id as cid, c.title as course_title, c.total_classes 
+        FROM timetable t
+        JOIN course_details c ON t.course_id = c.id
+        JOIN course_registration cr ON c.id = cr.course_id
+        WHERE t.day_of_week = ? 
+        AND ? BETWEEN t.start_time AND t.end_time
+        AND cr.student_id = ? 
+        AND cr.academic_year = ?
+    ");
+    $stmt_class->execute([$day_of_week, $current_time, $student['id'], $current_academic_year]);
+    $current_class = $stmt_class->fetch(PDO::FETCH_ASSOC);
 
-    if ($leave_info) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Student is currently on ' . $leave_info['leave_type'] . ' Leave!',
-            'photo' => $student['photo'] ?: 'default.png'
-        ]);
+    if (!$current_class) {
+        echo json_encode(['success' => false, 'message' => 'No active class found or not registered for this course this year!']);
         exit;
     }
 
-    // 3. Academic Year ကို Registration table မှ ယူခြင်း
-    $reg_year_stmt = $db->conn->prepare("SELECT academic_year FROM course_registration WHERE student_id = ? ORDER BY id DESC LIMIT 1");
-    $reg_year_stmt->execute([$student['id']]);
-    $current_academic_year = $reg_year_stmt->fetchColumn();
-
-    if (!$current_academic_year) {
-        echo json_encode(['success' => false, 'message' => 'Student not registered!']);
-        exit;
-    }
+    $course_id = $current_class['cid'];
 
     // 4. လက်ရှိအချိန်မှာ ရှိနေတဲ့ အတန်း (Class Slot) ကို ရှာဖွေခြင်း
     $time_sql = "SELECT t.id as timetable_id, t.course_id, t.period, t.end_time, c.title as course_title, c.total_classes 
