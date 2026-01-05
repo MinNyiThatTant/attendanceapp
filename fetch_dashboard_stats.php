@@ -3,14 +3,14 @@ require_once 'database/database.php';
 $db = new Database();
 
 $today_day = date('l');
-$current_academic_year = $db->getAcademicYear(); // 2025-2026 လို့ manual ရေးမယ့်အစား သုံးပါ
+$current_academic_year = $db->getAcademicYear(); // function to get current academic year
 
 // 1. Present Count
 $stmt_present = $db->conn->prepare("SELECT COUNT(DISTINCT student_id) FROM attendance_details WHERE on_date = CURDATE() AND status = 'Present' AND academic_year = ?");
 $stmt_present->execute([$current_academic_year]);
 $total_present = $stmt_present->fetchColumn() ?: 0;
 
-// 2. Expected Count (ကျောင်းသား Register လုပ်ထားတဲ့ အရေအတွက်အတိုင်းပြမယ်)
+// 2. Expected Count and show in timetable
 $stmt_total_reg = $db->conn->prepare("
     SELECT COUNT(DISTINCT cr.student_id) 
     FROM course_registration cr
@@ -31,7 +31,7 @@ $stmt_log = $db->conn->prepare("
     AND (ad.academic_year = :ay OR ad.academic_year IS NULL)
     ORDER BY ad.on_time DESC
 ");
-$stmt_log->execute([':ay' => $current_academic_year]); // Parameter ကို bind လုပ်လိုက်သည်
+$stmt_log->execute([':ay' => $current_academic_year]); // bind academic year
 $logs = $stmt_log->fetchAll(PDO::FETCH_ASSOC);
 
 $table_html = "";

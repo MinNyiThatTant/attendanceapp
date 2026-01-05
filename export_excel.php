@@ -22,7 +22,7 @@ if ($f_type == 'daily') {
     $params = [':manual_date' => $f_date, ':course_id' => $f_course];
     $filename = "Daily_Attendance_" . $f_date;
 } else {
-    // အတန်းရှိခဲ့သော ရက်ပေါင်းကို အရင်ရှာ
+    // Monthly Report
     $stmt_days = $conn->prepare("SELECT COUNT(DISTINCT on_date) FROM attendance_details WHERE course_id = ? AND on_date LIKE ?");
     $stmt_days->execute([$f_course, $f_month . '%']);
     $total_class_days = $stmt_days->fetchColumn() ?: 0;

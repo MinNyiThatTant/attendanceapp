@@ -3,7 +3,7 @@ session_start();
 require_once 'database/database.php';
 $db = new Database();
 
-// ၁။ Add သို့မဟုတ် Update လုပ်ခြင်း Logic
+// save leave logic
 if (isset($_POST['save_leave'])) {
     $student_id = $_POST['student_id'];
     $from_date = $_POST['from_date'];
@@ -14,12 +14,12 @@ if (isset($_POST['save_leave'])) {
     $current_academic_year = $db->getAcademicYear();
 
     if (!empty($leave_id)) {
-        // Update လုပ်ခြင်း
+        // Update existing leave
         $stmt = $db->conn->prepare("UPDATE student_leaves SET student_id=?, from_date=?, to_date=?, leave_type=?, reason=?, academic_year=? WHERE id=?");
         $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, $current_academic_year]);
         $msg = "updated=1";
     } else {
-        // အသစ်ထည့်ခြင်း
+        // Insert new leave
         $stmt = $db->conn->prepare("INSERT INTO student_leaves (student_id, from_date, to_date, leave_type, reason, academic_year) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$student_id, $from_date, $to_date, $leave_type, $reason, $current_academic_year]);
         $msg = "success=1";
@@ -36,7 +36,7 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// ၃။ Edit အတွက် Data ကြိုဆွဲခြင်း
+// ၃။ Edit Logic
 $edit_data = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->conn->prepare("SELECT * FROM student_leaves WHERE id = ?");
@@ -44,7 +44,7 @@ if (isset($_GET['edit'])) {
     $edit_data = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// ၄။ လိုအပ်သောစာရင်းများ ဆွဲထုတ်ခြင်း
+// Fetch all students and leaves for listing
 $students = $db->conn->query("SELECT id, name, roll_no FROM student_details ORDER BY name ASC")->fetchAll();
 $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l JOIN student_details s ON l.student_id = s.id ORDER BY l.from_date DESC")->fetchAll();
 ?>

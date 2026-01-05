@@ -3,18 +3,18 @@ session_start();
 require_once 'database/database.php';
 $db = new Database();
 
-// --- Major အသစ်ထည့်ခြင်း သို့မဟုတ် ပြင်ဆင်ခြင်း Logic ---
+// save major logic
 if (isset($_POST['save_major'])) {
     $title = $_POST['title'];
     $code = $_POST['code'];
     $id = $_POST['major_id'];
 
     if (!empty($id)) {
-        // ID ပါရင် Update လုပ်မယ်
+        // update existing major
         $stmt = $db->conn->prepare("UPDATE major_details SET title = ?, code = ? WHERE id = ?");
         $stmt->execute([$title, $code, $id]);
     } else {
-        // ID မပါရင် Insert (အသစ်ထည့်) လုပ်မယ်
+        // insert new major
         $stmt = $db->conn->prepare("INSERT INTO major_details (title, code) VALUES (?, ?)");
         $stmt->execute([$title, $code]);
     }
@@ -30,7 +30,7 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// --- Edit လုပ်ရန် Data ကြိုဆွဲထုတ်ခြင်း ---
+// Fetch Majors for Listing 
 $edit_major = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];

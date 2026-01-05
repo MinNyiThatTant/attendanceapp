@@ -12,7 +12,7 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// --- CSV IMPORT LOGIC ပြင်ဆင်ရန် ---
+// IMPORT LOGIC
 if (isset($_POST['import_csv'])) {
     $filename = $_FILES["student_file"]["tmp_name"];
     if ($_FILES["student_file"]["size"] > 0) {
@@ -26,7 +26,7 @@ if (isset($_POST['import_csv'])) {
                 try {
                     $stmt->execute([$column[0], $column[1], $column[2], $column[3], $column[4]]);
                 } catch (PDOException $e) {
-                    if ($e->getCode() == 23000) { $error_count++; } // Duplicate roll no တွေ့ရင် ရေတွက်ထားမယ်
+                    if ($e->getCode() == 23000) { $error_count++; } // count duplicate roll no errors
                     else { throw $e; }
                 }
             }
@@ -90,7 +90,7 @@ if (isset($_POST['save_student'])) {
         exit();
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
-            // Roll No ထပ်နေရင် msg=duplicate ဆိုပြီး ပြန်ပို့မယ်
+            // send duplicate roll no error
             header("Location: manage_students.php?msg=duplicate&roll=$roll");
             exit();
         } else {

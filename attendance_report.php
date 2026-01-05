@@ -10,7 +10,7 @@ if (empty($_SESSION["current_user"])) {
 $db = new Database();
 $conn = $db->conn;
 
-// Filter data များရယူခြင်း
+// Fetch Majors and Courses for Filters
 $majors = $conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_ASSOC);
 $courses_sql = "SELECT cd.id, cd.title, cd.code, (SELECT GROUP_CONCAT(major_id) FROM course_assignments WHERE course_id = cd.id) as assigned_majors FROM course_details cd";
 $courses = $conn->query($courses_sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -54,7 +54,7 @@ if ($f_course) {
         ];
     } else {
         // --- Monthly Query ---
-        // အတန်းရှိခဲ့သော ရက်စုစုပေါင်း (Weekends မပါဝင်ပါ)
+        // Count total class days in the month (excluding weekends and holidays)
         $stmt_days = $conn->prepare("SELECT COUNT(DISTINCT on_date) FROM attendance_details WHERE course_id = ? AND on_date LIKE ?");
         $stmt_days->execute([$f_course, $f_month . '%']);
         $total_class_days = $stmt_days->fetchColumn() ?: 0;
@@ -87,7 +87,7 @@ if ($f_course) {
     $stmt->execute($params);
     $report_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // --- Monthly ရင် Leave Days ကို Weekends ဖယ်ပြီး PHP ကနေ တွက်ချက်ခြင်း ---
+    // Leave Days Calculation for Monthly Report
     if ($f_type == 'monthly') {
         foreach ($report_data as &$row) {
             $leave_stmt = $conn->prepare("SELECT from_date, to_date FROM student_leaves WHERE student_id = ? AND (from_date LIKE ? OR to_date LIKE ? OR (from_date < ? AND to_date > ?))");
@@ -103,7 +103,7 @@ if ($f_course) {
                 $lv_end = new DateTime(min($lv['to_date'], $month_end->format('Y-m-d')));
                 
                 while ($lv_start <= $lv_end) {
-                    if ($lv_start->format('N') < 6) { // Saturday(6) နဲ့ Sunday(7) မဟုတ်မှ
+                    if ($lv_start->format('N') < 6) { // if no saturday(6) or sunday(7)
                         $valid_leave_days++;
                     }
                     $lv_start->modify('+1 day');
@@ -231,7 +231,7 @@ if ($f_course) {
                 </thead>
                 <tbody>
                     <?php 
-                    $is_weekend = (date('N', strtotime($f_date)) >= 6); // စနေ သို့ တနင်္ဂနွေ
+                    $is_weekend = (date('N', strtotime($f_date)) >= 6); // Saturday or Sunday
                     foreach ($report_data as $row): 
                     ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">

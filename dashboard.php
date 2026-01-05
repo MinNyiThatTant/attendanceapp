@@ -2,7 +2,7 @@
 session_start();
 require_once 'database/database.php';
 
-// Login စစ်ဆေးခြင်း
+// Check user session
 if (empty($_SESSION["current_user"])) {
     header('Location: login.php');
     exit;
@@ -10,7 +10,7 @@ if (empty($_SESSION["current_user"])) {
 
 $db = new Database();
 
-// --- အခြေခံ Variable များ သတ်မှတ်ခြင်း ---
+// Get today's date info
 $today_day = date('l'); // Monday, Tuesday, etc.
 $today = date('Y-m-d');
 $current_month = (int)date('m');
@@ -18,9 +18,9 @@ $current_year = (int)date('Y');
 
 
 /**
- * နည်းလမ်း (၂) - Academic Year ကို အလိုအလျောက် တွက်ချက်ခြင်း
- * ဥပမာ- ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ် (2025-2026)
- * ဇွန်လ ကနေစပြီး နောက်ပိုင်းဆိုရင် လက်ရှိနှစ်-နောက်နှစ် (2026-2027)
+ * Determine current academic year
+ * eg: If current month is before June (1-5), academic year is previous year-current year (2024-2025)
+ *    If current month is June or later (6-12), academic year is current year-next year (2025-2026)
  */
 if ($current_month < 6) {
     $current_academic_year = ($current_year - 1) . "-" . $current_year;
@@ -43,7 +43,7 @@ $today_leaves = $db->conn->prepare("SELECT COUNT(*) FROM student_leaves WHERE ? 
 $today_leaves->execute([$today]);
 $total_leaves = $today_leaves->fetchColumn() ?: 0;
 
-// 2. Today Classes Count (Dynamic Year နဲ့ စစ်ထုတ်ခြင်း)
+// 2. Today Classes Count , also academic year
 $stmt_classes_count = $db->conn->prepare("SELECT COUNT(*) FROM timetable WHERE day_of_week = ? AND academic_year = ?");
 $stmt_classes_count->execute([$today_day, $current_academic_year]);
 $total_classes = $stmt_classes_count->fetchColumn() ?: 0;

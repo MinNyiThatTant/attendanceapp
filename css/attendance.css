@@ -220,7 +220,7 @@ input[type="checkbox"] {
 
 .input-group select, 
 .input-group input {
-    height: 25px;
+    height: 35px;
     padding: 0 15px;
     border: 1px solid #d1d5db;
     border-radius: 8px;

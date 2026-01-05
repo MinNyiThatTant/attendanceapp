@@ -10,24 +10,24 @@ if (empty($_SESSION["current_user"])) {
 $db = new Database();
 $conn = $db->conn;
 
-// ၁။ Holiday အသစ်ထည့်ခြင်း Logic
+// add holiday logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_holiday'])) {
     $h_date = $_POST['holiday_date'];
     $desc = $_POST['description'];
     $ay = $_POST['academic_year']; 
 
     if (!empty($h_date) && !empty($desc)) {
-        // --- ရက်စွဲ ရှိနှင့်ပြီးသားလား အရင်စစ်ဆေးခြင်း ---
+        // check duplicate before insert
         $check_stmt = $conn->prepare("SELECT COUNT(*) FROM holidays WHERE holiday_date = ?");
         $check_stmt->execute([$h_date]);
         $already_exists = $check_stmt->fetchColumn();
 
         if ($already_exists > 0) {
-            // ရှိပြီးသားဖြစ်နေရင် duplicate error ပြန်ပို့မယ်
+            // send duplicate message
             header("Location: holidays.php?msg=duplicate&date=$h_date");
             exit;
         } else {
-            // မရှိသေးမှ Insert လုပ်မယ်
+            // insert new holiday
             $stmt = $conn->prepare("INSERT INTO holidays (holiday_date, description, academic_year) VALUES (?, ?, ?)");
             $stmt->execute([$h_date, $desc, $ay]);
             header("Location: holidays.php?msg=success");
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_holiday'])) {
     }
 }
 
-// ၂။ Holiday ပြန်ဖျက်ခြင်း Logic
+// delete holiday logic
 if (isset($_GET['delete'])) {
     $stmt = $conn->prepare("DELETE FROM holidays WHERE id = ?");
     $stmt->execute([$_GET['delete']]);

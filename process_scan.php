@@ -8,9 +8,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
     $date = date('Y-m-d');
     $current_time = date('H:i:s');
     $day_of_week = date('l');
-    $current_academic_year = $db->getAcademicYear(); // Dynamic Year ရယူခြင်း
+    $current_academic_year = $db->getAcademicYear(); // function to get current academic year
 
-    // 1. Holiday စစ်ဆေးခြင်း
+    // check holidays
     $check_holiday = $db->conn->prepare("SELECT description FROM holidays WHERE holiday_date = ?");
     $check_holiday->execute([$date]);
     if ($holiday = $check_holiday->fetch()) {
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         exit;
     }
 
-    // 2. ကျောင်းသားရှာဖွေခြင်း
+    // search student by RFID UID
     $stmt = $db->conn->prepare("SELECT id, name, roll_no, major_id, photo FROM student_details WHERE rfid_uid = ?");
     $stmt->execute([$uid]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         exit;
     }
 
-    // 3. (အရေးကြီးဆုံးအပိုင်း) Timetable + Course Registration ကို တွဲစစ်ခြင်း
-    // ကျောင်းသားက ဒီနှစ်မှာ ဒီဘာသာရပ်ကို Register လုပ်ထားမှသာ Timetable ပေါ်မှာ Attendance ပေးမယ်
+    // check if student has a class right now
+    // if registered for the course in the current academic year
     $stmt_class = $db->conn->prepare("
         SELECT t.id as tid, c.id as cid, c.title as course_title, c.total_classes 
         FROM timetable t
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
 
     $course_id = $current_class['cid'];
 
-    // 4. လက်ရှိအချိန်မှာ ရှိနေတဲ့ အတန်း (Class Slot) ကို ရှာဖွေခြင်း
+    // check if attendance already marked for this class
     $time_sql = "SELECT t.id as timetable_id, t.course_id, t.period, t.end_time, c.title as course_title, c.total_classes 
                  FROM timetable t
                  JOIN course_details c ON t.course_id = c.id
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
             $msg = 'Already marked as Present';
         }
 
-        // --- Option 1: နောက်ထပ် ကပ်လျက်အချိန်မှာ ဒီ Course ပဲ ရှိနေရင် Auto-Present ပေးရန် ---
+        // Check for next consecutive class within 15 minutes
         $sql_next = "SELECT id as next_timetable_id FROM timetable 
                      WHERE day_of_week = ? 
                      AND course_id = ? 

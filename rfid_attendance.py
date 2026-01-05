@@ -4,7 +4,7 @@ import requests
 import time
 
 reader = SimpleMFRC522()
-# သင့် Web Server IP ကို ဒီမှာ ပြင်ပါ
+# Change this to your server's IP address or domain
 API_ENDPOINT = "http://192.168.1.100/attendance_system/process_scan.php"
 
 print("Attendance System: Ready. Scan your ID card...")
@@ -15,7 +15,7 @@ try:
         print(f"Scanned UID: {id}")
         
         try:
-            # Web Server ဆီသို့ RFID UID ပို့ပေးခြင်း
+            # send POST request to server
             data = {'rfid_uid': str(id)}
             response = requests.post(API_ENDPOINT, data=data)
             
@@ -30,7 +30,7 @@ try:
         except Exception as e:
             print(f"⚠️ Network Error: {e}")
             
-        time.sleep(2) # ကဒ်တစ်ခုနဲ့ တစ်ခုကြား ၂ စက္ကန့် စောင့်မည်
+        time.sleep(2) # delay before next scan
 
 finally:
     GPIO.cleanup()

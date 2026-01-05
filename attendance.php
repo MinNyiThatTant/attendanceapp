@@ -11,7 +11,7 @@ $major_name = $_GET['major_name'] ?? 'Major';
 $semester = $_GET['semester'] ?? '';
 $course_id = $_GET['course_id'] ?? '';
 
-// Semester များအားလုံးကို ဆွဲထုတ်ခြင်း
+// Fetch all semesters for the selected major
 $sem_stmt = $conn->query("SELECT DISTINCT term FROM session_details ORDER BY id ASC");
 $all_semesters = $sem_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -19,14 +19,14 @@ if (empty($semester) && !empty($all_semesters)) {
     $semester = $all_semesters[0]['term'];
 }
 
-// --- Dynamic Academic Year Logic ပြင်ဆင်ထားသောအပိုင်း ---
+// academic year determination logic
 if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
     $academic_year = $_GET['academic_year'];
 } else {
     $current_month = (int)date('m');
     $current_year = (int)date('Y');
 
-    // ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ် (ဥပမာ- 2025-2026)
+    // Determine academic year based on current month
     if ($current_month < 6) {
         $academic_year = ($current_year - 1) . "-" . $current_year;
     } else {
@@ -35,7 +35,7 @@ if (isset($_GET['academic_year']) && !empty($_GET['academic_year'])) {
 }
 // ---------------------------------------------------
 
-// ရွေးချယ်ထားသော Major နှင့် Semester အတွက် ဘာသာရပ်များကို ရှာဖွေခြင်း
+// search subjects for the selected major and semester
 $stmt_sub = $conn->prepare("
     SELECT DISTINCT cd.* FROM course_details cd 
     INNER JOIN course_assignments ca ON cd.id = ca.course_id 
@@ -45,7 +45,7 @@ $stmt_sub = $conn->prepare("
 $stmt_sub->execute([':sem' => $semester, ':mid' => $major_id]);
 $subjects = $stmt_sub->fetchAll(PDO::FETCH_ASSOC);
 
-// ရွေးချယ်ထားသော ဘာသာရပ်အတွက် ကျောင်းသားများကို ဆွဲထုတ်ခြင်း
+// fetch students for the selected course
 $students = [];
 if ($course_id) {
     $stmt_std = $conn->prepare("

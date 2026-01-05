@@ -5,9 +5,8 @@ $db = new Database();
 
 $edit_course = null;
 $assigned_majors = [];
-$auto_ay = $db->getAcademicYear();
 
-// --- academic_year သတ်မှတ်တဲ့ PHP Logic (Form ရဲ့ အပေါ်မှာ ထည့်ထားပါ) ---
+// Academic Year Logic 
 $current_month = (int)date('m');
 $current_year = (int)date('Y');
 if ($current_month < 6) {
@@ -88,19 +87,16 @@ if (!empty($search)) {
     $params = ["%$search%", "%$search%", "%$search%"];
 }
 
-// Pagination parameters
 $limit = 10; 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// Total count for pagination
 $count_sql = "SELECT COUNT(*) FROM course_details cd $search_query";
 $count_stmt = $db->conn->prepare($count_sql);
 $count_stmt->execute($params);
 $total_rows = $count_stmt->fetchColumn();
 $total_pages = ceil($total_rows / $limit);
 
-// Fetch paginated results
 $sql_courses = "SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as major_names 
                 FROM course_details cd 
                 LEFT JOIN session_details sd ON cd.session_id = sd.id
@@ -108,7 +104,7 @@ $sql_courses = "SELECT cd.*, sd.term, GROUP_CONCAT(md.title SEPARATOR ', ') as m
                 LEFT JOIN major_details md ON ca.major_id = md.id
                 $search_query
                 GROUP BY cd.id
-                ORDER BY cd.academic_year DESC, sd.id ASC, cd.code ASC
+                ORDER BY cd.id DESC
                 LIMIT $limit OFFSET $offset";
 
 $stmt_courses = $db->conn->prepare($sql_courses);
@@ -179,18 +175,18 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
                         </select>
                     </div>
                     <div>
-    <label class="input-label">Academic Year</label>
-<select name="academic_year" required style="width:100%; padding:8px;">
-    <?php 
-    $current_ay = $db->getAcademicYear();
-    $years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
-    foreach($years as $y): ?>
-        <option value="<?= $y ?>" <?= (isset($edit_course) && $edit_course['academic_year'] == $y) ? 'selected' : ($y == $current_ay ? 'selected' : '') ?>>
-            <?= $y ?>
-        </option>
-    <?php endforeach; ?>
-</select>
-</div>
+                        <label class="input-label">Academic Year</label>
+                        <select name="academic_year" required style="width:100%; padding:8px;">
+                            <option value="Any" <?= (isset($edit_course) && $edit_course['academic_year'] == 'Any') ? 'selected' : '' ?>>Any (Common)</option>
+                            <?php 
+                            $years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
+                            foreach($years as $y): ?>
+                                <option value="<?= $y ?>" <?= (isset($edit_course) && $edit_course['academic_year'] == $y) ? 'selected' : '' ?>>
+                                    <?= $y ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div>
                         <label class="input-label">Total Classes</label>
                         <input type="number" name="total_classes" required value="<?= $edit_course['total_classes'] ?? '45' ?>" style="width:100%; padding:8px;">
@@ -257,27 +253,26 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
             </table>
 
             <?php if ($total_pages > 1): ?>
-<div class="pagination">
-    <?php if ($page > 1): ?>
-        <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">« Prev</a>
-    <?php endif; ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($search) ?>">« Prev</a>
+                <?php endif; ?>
 
-    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-        <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="<?= ($page == $i) ? 'active' : '' ?>">
-            <?= $i ?>
-        </a>
-    <?php endfor; ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="<?= ($page == $i) ? 'active' : '' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
 
-    <?php if ($page < $total_pages): ?>
-        <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next »</a>
-    <?php endif; ?>
-</div>
-<?php endif; ?>
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($search) ?>">Next »</a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <script>
-        // Select All Checkboxes
         document.getElementById('selectAllMajors').addEventListener('change', function() {
             document.querySelectorAll('.major-checkbox').forEach(cb => cb.checked = this.checked);
         });
