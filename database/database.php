@@ -2,7 +2,7 @@
 class Database
 {
   
-    private $servername = "127.0.0.1:3307";
+    private $servername = "127.0.0.1:3306";
     private $username = "root";
     private $password = "";
     private $dbname = "attendance_db";
@@ -25,7 +25,7 @@ class Database
 public function getAcademicYear() {
     $month = (int)date('m');
     $year = (int)date('Y');
-    // ဇွန်လ (Month 6) မတိုင်ခင်ဆိုရင် ယခင်နှစ်-လက်ရှိနှစ်
+    // If current month is before June, academic year is previous year - current year
     if ($month < 6) {
         return ($year - 1) . "-" . $year;
     } else {
