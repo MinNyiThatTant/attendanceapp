@@ -103,6 +103,7 @@ $today_classes = $stmt_timetable->fetchAll();
                     <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
                     <a href="holidays.php" class="nav-link-btn">🎉 Holidays</a>
                     <a href="manage_leaves.php" class="nav-link-btn">🏥 Leave</a>
+                    <a href="computer_usage_report.php" class="nav-link-btn">🖥️ Computer Lab</a>
                 </div>
             </div>
             <a href="logout.php" style="background:#ef4444; color:white; text-decoration:none; padding:10px 20px; border-radius:8px;">Logout</a>
