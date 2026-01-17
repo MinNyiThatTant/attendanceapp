@@ -15,5 +15,3 @@ if (ini_get("session.use_cookies")) {
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(['status' => 'success']);
 exit;
-
-?>

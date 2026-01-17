@@ -2,7 +2,7 @@
 class Database
 {
   
-    private $servername = "127.0.0.1:3306";
+    private $servername = "127.0.0.1:3307";
     private $username = "root";
     private $password = "";
     private $dbname = "attendance_db";
