@@ -11,7 +11,7 @@ function clearTable($dbo, $tabName)
         return;
     }
 
-    // Placeholders cannot be used for identifiers; use exec() after validation
+    // exec() after validation
     $sql = "DELETE FROM `" . $tabName . "`";
     try {
         $rows = $dbo->conn->exec($sql);

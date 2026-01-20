@@ -17,7 +17,6 @@ function trylogin()
             dataType:"json",
             data:{user_name:un,password:pw,action:"verifyUser"},
             beforeSend:function(){
-                //if you want to do something just before making the call
                 //console.log("about to make an ajax call");
                 // alert("Logging in... Please wait");
                 $("#diverror").removeClass("applyerrordiv");

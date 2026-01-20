@@ -4,7 +4,7 @@ import requests
 import time
 
 reader = SimpleMFRC522()
-# သင့် Server ရဲ့ IP သို့မဟုတ် Domain
+# Server API URL, server IP address 
 API_URL = "http://192.168.1.100/attendance/process_scan.php" 
 
 print("System Ready! Waiting for RFID Card...")
@@ -14,7 +14,7 @@ try:
         id, text = reader.read()
         print(f"Card Detected: {id}")
         
-        # Web App ဆီသို့ Data ပို့ခြင်း
+        # send POST request to server
         try:
             payload = {'rfid_uid': str(id)}
             response = requests.post(API_URL, data=payload)

@@ -2,9 +2,6 @@
 import requests
 import sys
 
-# Dashboard ရဲ့ URL (သင့် Pi ရဲ့ IP သို့မဟုတ် localhost)
-# Attendance အတွက်ဆိုရင် process_scan.php
-# Computer Lab အတွက်ဆိုရင် computerUsageAjax.php ကို သုံးပါ
 # URL = "http://localhost/attendanceapp/ajaxhandler/computerUsageAjax.php"
 
 def start_scanner():
@@ -13,13 +10,13 @@ def start_scanner():
     
     try:
         while True:
-            # USB Reader က ID ရိုက်ပြီး Enter ခေါက်လိုက်တာကို စောင့်ဖမ်းတာပါ
+            # Simulate scanning by user input
             rfid_uid = input("Scan UID: ").strip()
             
             if rfid_uid:
                 print(f"UID {rfid_uid} ကို ပို့နေပါသည်...")
                 
-                # PHP ဆီကို Data ပို့ခြင်း
+                # send POST request to server
                 data = {'rfid_uid': rfid_uid}
                 response = requests.post(URL, data=data)
                 

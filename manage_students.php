@@ -17,17 +17,21 @@ if (isset($_POST['import_csv'])) {
     $filename = $_FILES["student_file"]["tmp_name"];
     if ($_FILES["student_file"]["size"] > 0) {
         $file = fopen($filename, "r");
-        fgetcsv($file); 
+        fgetcsv($file);
         $stmt = $db->conn->prepare("INSERT INTO student_details (roll_no, name, major_id, current_semester, academic_year, photo) VALUES (?, ?, ?, ?, ?, 'default.png')");
-        
+
         $error_count = 0;
         while (($column = fgetcsv($file, 1000, ",")) !== FALSE) {
-            if(count($column) >= 5) {
+            if (count($column) >= 5) {
                 try {
                     $stmt->execute([$column[0], $column[1], $column[2], $column[3], $column[4]]);
                 } catch (PDOException $e) {
-                    if ($e->getCode() == 23000) { $error_count++; } // count duplicate roll no errors
-                    else { throw $e; }
+                    if ($e->getCode() == 23000) {
+                        $error_count++;
+                    } // count duplicate roll no errors
+                    else {
+                        throw $e;
+                    }
                 }
             }
         }
@@ -62,7 +66,7 @@ if (isset($_POST['save_student'])) {
     $academic_year = $_POST['academic_year'];
     $rfid_uid = $_POST['rfid_uid'];
     $student_id = $_POST['student_id'] ?? null;
-    $photo_name = $_POST['old_photo'] ?? "default.png"; 
+    $photo_name = $_POST['old_photo'] ?? "default.png";
 
     // Photo Upload Handling
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
@@ -70,7 +74,7 @@ if (isset($_POST['save_student'])) {
         if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
 
         $extension = pathinfo($_FILES["photo"]["name"], PATHINFO_EXTENSION);
-        $photo_name = "ST_" . time() . "." . $extension; 
+        $photo_name = "ST_" . time() . "." . $extension;
         move_uploaded_file($_FILES["photo"]["tmp_name"], $target_dir . $photo_name);
     }
 
@@ -130,21 +134,63 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Manage Students | Attendance System</title>
     <link rel="stylesheet" href="css/attendance.css">
     <style>
-        .rfid-badge { background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; border: 1px solid #d1d5db; }
-        .input-box { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
-        .page-item { padding: 8px 12px; border: 1px solid #4f46e5; text-decoration: none; color: #4f46e5; border-radius: 4px; }
-        .page-item.active { background: #4f46e5; color: white; }
-        .thumb-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
+        .rfid-badge {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            border: 1px solid #d1d5db;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .page-item {
+            padding: 8px 12px;
+            border: 1px solid #4f46e5;
+            text-decoration: none;
+            color: #4f46e5;
+            border-radius: 4px;
+        }
+
+        .page-item.active {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .thumb-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #ddd;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
+
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -171,7 +217,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
             <form method="POST" enctype="multipart/form-data" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px;">
                 <input type="hidden" name="student_id" value="<?= $edit_student['id'] ?? '' ?>">
                 <input type="hidden" name="old_photo" value="<?= $edit_student['photo'] ?? 'default.png' ?>">
-                
+
                 <div>
                     <label>Student Photo:</label>
                     <input type="file" name="photo" class="input-box" accept="image/*">
@@ -276,64 +322,67 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
     </div>
     <button onclick="topFunction()" id="scrollUpBtn" title="Go to top">↑</button>
 
-<script>
-let mybutton = document.getElementById("scrollUpBtn");
+    <script>
+        let mybutton = document.getElementById("scrollUpBtn");
 
-window.onscroll = function() {scrollFunction()};
+        window.onscroll = function() {
+            scrollFunction()
+        };
 
-function scrollFunction() {
-  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-    mybutton.style.display = "block"; 
-  } else {
-    mybutton.style.display = "none"; 
-  }
-}
+        function scrollFunction() {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                mybutton.style.display = "block";
+            } else {
+                mybutton.style.display = "none";
+            }
+        }
 
-function topFunction() {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth' 
-  });
-}
-</script>
+        function topFunction() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    </script>
 
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const msg = urlParams.get('msg');
-    const roll = urlParams.get('roll');
-    const errQty = urlParams.get('err_qty');
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const msg = urlParams.get('msg');
+        const roll = urlParams.get('roll');
+        const errQty = urlParams.get('err_qty');
 
-    if (msg === 'duplicate') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Roll No ထပ်နေပါသည်!',
-            text: `Roll No (${roll}) သည် စနစ်ထဲတွင် ရှိနှင့်ပြီးသား ဖြစ်နေပါသည်။`,
-            confirmButtonColor: '#4f46e5'
-        });
-    } else if (msg === 'success') {
-        Swal.fire({
-            icon: 'success',
-            title: 'အောင်မြင်ပါသည်',
-            text: 'ကျောင်းသားသစ်ကို မှတ်ပုံတင်ပြီးပါပြီ။',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    } else if (msg === 'imported_with_errors') {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Import ပြီးပါပြီ',
-            text: `အချို့ကျောင်းသားများ (${errQty} ယောက်) သည် Roll No ထပ်နေသဖြင့် Import မလုပ်နိုင်ခဲ့ပါ။`,
-            confirmButtonColor: '#4f46e5'
-        });
-    } else if (msg === 'updated') {
-        Swal.fire({
-            icon: 'success',
-            title: 'ပြင်ဆင်ပြီးပါပြီ',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
-</script>
+        if (msg === 'duplicate') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Roll No ထပ်နေပါသည်!',
+                text: `Roll No (${roll}) သည် စနစ်ထဲတွင် ရှိနှင့်ပြီးသား ဖြစ်နေပါသည်။`,
+                confirmButtonColor: '#4f46e5'
+            });
+        } else if (msg === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'အောင်မြင်ပါသည်',
+                text: 'ကျောင်းသားသစ်ကို မှတ်ပုံတင်ပြီးပါပြီ။',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else if (msg === 'imported_with_errors') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Import ပြီးပါပြီ',
+                text: `အချို့ကျောင်းသားများ (${errQty} ယောက်) သည် Roll No ထပ်နေသဖြင့် Import မလုပ်နိုင်ခဲ့ပါ။`,
+                confirmButtonColor: '#4f46e5'
+            });
+        } else if (msg === 'updated') {
+            Swal.fire({
+                icon: 'success',
+                title: 'ပြင်ဆင်ပြီးပါပြီ',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    </script>
 
 </body>
+
 </html>

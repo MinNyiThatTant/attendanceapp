@@ -1,9 +1,9 @@
 <?php
-// Error display ကို ဖွင့်ထားမှ Ajax error မှာ ဘာစာသားတက်လဲ မြင်ရမှာပါ
+// Error display 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// DOCUMENT_ROOT အစား __DIR__ ကို သုံးပြီး Path ကို တိတိကျကျ ခေါ်ပါ
+// DOCUMENT_ROOT DIR
 require_once __DIR__ . '/../database/database.php';
 require_once __DIR__ . '/../database/facultyDetails.php';
 

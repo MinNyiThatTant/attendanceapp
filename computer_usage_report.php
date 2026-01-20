@@ -21,23 +21,36 @@ if ($search) $stmt->bindValue(':s', "%$search%");
 $stmt->execute();
 $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// အသုံးပြုချိန် ကြာမြင့်မှုကို တွက်ချက်ပေးမည့် Function
-function getDuration($start, $end) {
+// Duration calculation
+function getDuration($start, $end)
+{
     if (!$end) return "<span style='color:orange;'>Still in Lab</span>";
     $start_time = new DateTime($start);
     $end_time = new DateTime($end);
     $interval = $start_time->diff($end_time);
-    return $interval->format('%h hr %i min');
+
+    $hours = $interval->h;
+    $mins = $interval->i;
+    $secs = $interval->s;
+
+    // show under 1 min if less than a minute
+    if ($hours == 0 && $mins == 0) {
+        return "Under 1 min";
+    }
+
+    return ($hours > 0 ? $hours . " hr " : "") . $mins . " min";
 }
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Computer Usage Report</title>
     <link rel="stylesheet" href="css/attendance.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
+
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -47,7 +60,13 @@ function getDuration($start, $end) {
                     <input type="text" name="search" placeholder="Search Student..." value="<?= htmlspecialchars($search) ?>" style="padding:10px; border-radius:5px; border:1px solid #ddd;">
                     <button type="submit" class="class-btn">Search</button>
                 </form>
-                <a href="dashboard.php" class="class-btn" style="background:#666; text-decoration:none;">Back</a>
+                
+                    <a href="export_lab_usage.php" class="class-btn" style="text-decoration:none; background:#10b981; color:white;">
+                        <i class="fa-solid fa-file-excel"></i> Export to Excel
+                    </a>
+                    <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">
+                    <i class="fa-solid fa-house"></i> Back to Dashboard
+                </a>
             </div>
         </header>
 
@@ -66,23 +85,26 @@ function getDuration($start, $end) {
                 <tbody>
                     <?php if (count($logs) > 0): ?>
                         <?php foreach ($logs as $log): ?>
-                        <tr>
-                            <td><?= date('d-M-Y', strtotime($log['usage_date'])) ?></td>
-                            <td><?= htmlspecialchars($log['roll_no']) ?></td>
-                            <td><?= htmlspecialchars($log['name']) ?></td>
-                            <td><?= date('h:i A', strtotime($log['check_in_time'])) ?></td>
-                            <td><?= $log['check_out_time'] ? date('h:i A', strtotime($log['check_out_time'])) : '-' ?></td>
-                            <td style="font-weight:bold; color:#4f46e5;">
-                                <?= getDuration($log['check_in_time'], $log['check_out_time']) ?>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?= date('d-M-Y', strtotime($log['usage_date'])) ?></td>
+                                <td><?= htmlspecialchars($log['roll_no']) ?></td>
+                                <td><?= htmlspecialchars($log['name']) ?></td>
+                                <td><?= date('h:i A', strtotime($log['check_in_time'])) ?></td>
+                                <td><?= $log['check_out_time'] ? date('h:i A', strtotime($log['check_out_time'])) : '-' ?></td>
+                                <td style="font-weight:bold; color:#4f46e5;">
+                                    <?= getDuration($log['check_in_time'], $log['check_out_time']) ?>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="6" style="text-align:center;">No records found.</td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center;">No records found.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </body>
+
 </html>

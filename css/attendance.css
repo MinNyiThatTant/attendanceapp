@@ -373,7 +373,7 @@ input[type="checkbox"] {
 }
 
 
-/* Button အခြေခံ ဒီဇိုင်း */
+/* Button design */
 .btn-icon {
     text-decoration: none;
     padding: 6px 12px;
@@ -421,9 +421,9 @@ input[type="checkbox"] {
 }
 
 .card-hover:hover {
-    transform: translateY(-5px); /* နည်းနည်းလေး ကြွတက်လာမယ် */
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* အရိပ်လေး ပေါ်လာမယ် */
-    filter: brightness(0.98); /* အရောင် နည်းနည်းလေး ရင့်သွားမယ် */
+    transform: translateY(-5px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* shadow */
+    filter: brightness(0.98); /* color slightly dimmed */
 }
 
 

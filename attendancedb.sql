@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `course_details` (
   `total_classes` INT DEFAULT 45
 );
 
--- 3. Course Assignments (Major နဲ့ Course ချိတ်ဆက်ရန်)
+-- 3. Course Assignments
 CREATE TABLE IF NOT EXISTS `course_assignments` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `course_id` INT,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `course_assignments` (
   FOREIGN KEY (major_id) REFERENCES major_details(id) ON DELETE CASCADE
 );
 
--- 4. Timetable Table (အခုလက်ရှိရေးထားတဲ့ Timetable အတွက်)
+-- 4. Timetable Table
 CREATE TABLE IF NOT EXISTS `timetable` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `major_id` INT,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `timetable` (
   FOREIGN KEY (course_id) REFERENCES course_details(id)
 );
 
--- 5. Session Details (Semester အတွက်)
+-- 5. Session Details 
 CREATE TABLE IF NOT EXISTS `session_details` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `term` VARCHAR(50) NOT NULL
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS `major_details` (
   `title` VARCHAR(100) NOT NULL
 );
 
--- Course Details Table (Screenshot ထဲကအတိုင်း column အပြည့်အစုံ)
+-- Course Details Table 
 CREATE TABLE IF NOT EXISTS `course_details` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `code` VARCHAR(50) UNIQUE NOT NULL,
@@ -130,23 +130,23 @@ INSERT IGNORE INTO `faculty_details` (`id`, `user_name`, `name`, `password`) VAL
 (2, 'faculty1', 'Faculty One', '$2y$10$q.yY/eLpS/6x5Z7pQ5F1uO4kI5H7/0X5R8B6U9L1M5N4z3O2P1Q2R');
 
 
--- Course id 33 ကနေ 38 ထိကို Major id 1 (CEIT) အတွက် သတ်မှတ်ပေးလိုက်ခြင်း
+-- Course id 33 to 45 
 INSERT IGNORE INTO `course_assignments` (`course_id`, `major_id`) VALUES
 (33, 1), (34, 1), (35, 1), (36, 1), (37, 1), (38, 1), (44, 1), (45, 1);
 
--- Major များထည့်ခြင်း
+-- Major
 INSERT IGNORE INTO `major_details` (`id`, `title`) VALUES
 (1, 'Computer Engineering and Information Technology'),
 (2, 'Electronic Engineering'),
 (3, 'Mechanical Engineering');
 
--- Session (Semester) များထည့်ခြင်း
+-- Session (Semester) 
 INSERT IGNORE INTO `session_details` (`id`, `year`, `term`) VALUES
 (1, 2025, '1st Semester'),
 (2, 2024, '2nd Semester'),
 (3, 2025, '3rd Semester');
 
--- Course Details များထည့်ခြင်း (Screenshot ထဲကအတိုင်း)
+-- Course Details 
 INSERT IGNORE INTO `course_details` (`id`, `code`, `title`, `credits`, `session_id`, `academic_year`, `total_classes`) VALUES
 (33, 'M11001', 'Myanmar', 2, 1, '2025-2026', 45),
 (34, 'E11001', 'English I', 3, 1, '2025-2026', 45),
@@ -157,8 +157,8 @@ INSERT IGNORE INTO `course_details` (`id`, `code`, `title`, `credits`, `session_
 (44, 'CEIT12002', 'C Programming', 3, 2, '2024-2025', 45),
 (45, 'E21001', 'English III', 3, 3, '2024-2025', 45);
 
--- Faculty (Admin) အကောင့်ထည့်ခြင်း
--- Password က admin123 ဖြစ်ပါတယ်
+-- Faculty (Admin)
+-- Password - admin123
 INSERT IGNORE INTO `faculty_details` (`id`, `user_name`, `name`, `password`) VALUES
 (1, 'admin', 'Admin User', '$2y$10$89W1h/B.S.PqQvLz7M6PueV6WpLpD3rE7H/U3L.Nn9Z3R6v5f/9G.');
 
@@ -168,16 +168,16 @@ DROP TABLE IF EXISTS `holidays`;
 CREATE TABLE `holidays` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `holiday_name` VARCHAR(255) NOT NULL,
-  `holiday_date` DATE NOT NULL, -- Dashboard က ဒီ နာမည်ကို ရှာနေတာပါ
+  `holiday_date` DATE NOT NULL, 
   `academic_year` VARCHAR(20) NOT NULL,
   `description` TEXT NULL
 );
 
--- စမ်းသပ်ရန် ဒေတာတစ်ခု ထည့်ထားပါ
+-- to test holiday insertion
 INSERT INTO `holidays` (`holiday_name`, `holiday_date`, `academic_year`, `description`) 
 VALUES ('Test Holiday', CURDATE(), '2024-2025', 'Public Holiday Test');
 
--- ၁။ Attendance Details Table (Line 39 အတွက်)
+-- ၁။ Attendance Details Table 
 CREATE TABLE IF NOT EXISTS `attendance_details` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `student_id` INT NOT NULL,
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS `attendance_details` (
   `uid_scanned` VARCHAR(50)
 );
 
--- ၂။ Student Leaves Table (Line 43 အတွက်)
+-- ၂။ Student Leaves Table
 CREATE TABLE IF NOT EXISTS `student_leaves` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `student_id` INT NOT NULL,
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS `student_leaves` (
   `reason` TEXT
 );
 
--- ၃။ Timetable Table (Line 48 အတွက်)
+-- ၃။ Timetable Table
 CREATE TABLE IF NOT EXISTS `timetable` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `major_id` INT,

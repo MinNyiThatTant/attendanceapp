@@ -75,7 +75,7 @@ sudo mariadb -u root attendance_db < /var/www/html/attendanceapp/database/your_d
 sudo cp -r ~/Downloads/attendanceapp /var/www/html/
 sudo cp -r ~/Downloads/attendanceapp /var/www/html/
 
-# ပြီးရင် Apache (Web Server) က ဖတ်နိုင်အောင် ပိုင်ရှင်ပြောင်းပေးပါ
+# ပြီးရင် Apache (Web Server) က ဖတ်နိုင်အောင် ပိုင်ရှင်ပြောင်း
 sudo chown -R www-data:www-data /var/www/html/attendanceapp
 sudo chmod -R 755 /var/www/html/attendanceapp
 
@@ -85,10 +85,10 @@ sudo chmod -R 755 /var/www/html/attendanceapp
 
 # snapdrop.net
 
-# folder အဆင့်ဆင့်ကို အရင်ဆောက်ပါ
+# build folder 
 sudo mkdir -p /var/www/html
 
-# ပြီးမှ folder ကို ကူးပါ
+# copy folder 
 sudo cp -r ~/Downloads/attendanceapp /var/www/html/
 
 sudo chown -R www-data:www-data /var/www/html/attendanceapp
@@ -141,10 +141,10 @@ sudo mariadb -u root attendance_db < /var/www/html/attendanceapp/your_sql_file.s
 sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
 sudo systemctl restart apache2
 
-# PHP module ကို သွင်းပြီး အလုပ်ပေးရန်
+# PHP module 
 sudo apt install libapache2-mod-php -y
 
-# Apache မှာ PHP ကို ပွင့်သွားအောင် လုပ်ရန်
+# open PHP in Apache 
 sudo a2enmod php7.4
 
 sudo systemctl restart apache2

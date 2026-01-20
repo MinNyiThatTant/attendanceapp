@@ -11,7 +11,7 @@ if (empty($_SESSION["current_user"])) {
 $db = new Database();
 
 // Get today's date info
-$today_day = date('l'); // Monday, Tuesday, etc.
+$today_day = date('l'); // Monday, Tuesday, .....
 $today = date('Y-m-d');
 $current_month = (int)date('m');
 $current_year = (int)date('Y');
@@ -69,6 +69,7 @@ $today_classes = $stmt_timetable->fetchAll();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard - Attendance System</title>
@@ -76,18 +77,107 @@ $today_classes = $stmt_timetable->fetchAll();
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .card:hover { border-color: #4f46e5 !important; transform: translateY(-3px); transition: 0.3s; cursor: pointer; }
-        .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
-        #scan-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .scan-card { width: 450px; text-align: center; padding: 30px; border-radius: 25px; background: white; }
-        .progress-container { background: #e5e7eb; border-radius: 10px; height: 12px; width: 80%; margin: 15px auto; overflow: hidden; }
-        .progress-fill { height: 100%; background: #4f46e5; width: 0%; transition: width 1s ease-out; }
-        .nav-link-btn { text-decoration: none; background: #f3f4f6; padding: 10px 15px; border-radius: 8px; color: #374151; font-weight: 500; font-size: 0.9rem; transition: 0.2s; }
-        .holiday-alert { background: #fee2e2; border-left: 6px solid #ef4444; color: #991b1b; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-        .ay-badge { background: #4f46e5; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 10px; }
+        .card:hover {
+            border-color: #4f46e5 !important;
+            transform: translateY(-3px);
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        #scan-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .scan-card {
+            width: 450px;
+            text-align: center;
+            padding: 30px;
+            border-radius: 25px;
+            background: white;
+        }
+
+        .progress-container {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 12px;
+            width: 80%;
+            margin: 15px auto;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4f46e5;
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+
+        .nav-link-btn {
+            text-decoration: none;
+            background: #f3f4f6;
+            padding: 10px 15px;
+            border-radius: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+
+        .holiday-alert {
+            background: #fee2e2;
+            border-left: 6px solid #ef4444;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .ay-badge {
+            background: #4f46e5;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="card" style="margin-bottom:20px; display:flex; justify-content: space-between; align-items: center; padding: 15px 25px;">
@@ -211,34 +301,60 @@ $today_classes = $stmt_timetable->fetchAll();
         }
 
         function submitScan(uid) {
-            if (!uid) return;
-            $('#manual_uid').val('');
-            $.post('process_scan.php', { rfid_uid: uid }, function(res) {
-                try {
-                    const data = JSON.parse(res);
-                    if (data.success) {
-                        document.getElementById('audio-success').play();
-                        $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                        $('#st-name').text(data.name);
-                        $('#st-roll').text('Roll No: ' + data.roll_no);
-                        $('#st-course').text(data.course);
-                        $('#st-percentage').text(data.percentage);
-                        $('#st-progress-bar').css({ 'width': data.percentage, 'background': '#10b981' });
-                    } else {
-                        document.getElementById('audio-error').play();
-                        $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                        $('#st-photo').attr('src', 'assets/img/students/default.png');
-                        $('#st-name').text(data.name || 'Unknown');
-                        $('#st-percentage').text('0%');
-                        $('#st-progress-bar').css('width', '0%');
-                    }
-                    $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
-                    setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
-                    fetchLogs();
-                } catch (e) { console.error("Server Error:", res); }
-            });
+    if (!uid) return;
+    $('#manual_uid').val('');
+
+    $.post('process_scan.php', { rfid_uid: uid }, function(res) {
+        try {
+            const data = JSON.parse(res);
+            
+            if (data.success) {
+                // for success audio
+                if (data.type === 'Lab Out') {
+                    document.getElementById('audio-out').play();
+                } else {
+                    document.getElementById('audio-success').play();
+                }
+
+                // UI Update
+                $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                $('#st-name').text(data.name);
+                $('#st-roll').text('Roll No: ' + data.roll_no);
+                $('#st-course').text(data.course); // lab or course name
+                
+                // Progress Bar Update
+                if (data.type === 'Attendance') {
+                    $('#st-percentage').text(data.percentage);
+                    $('#st-progress-bar').css({ 'width': data.percentage, 'background': '#10b981' });
+                } else {
+                    $('#st-percentage').text(data.type); // lab in or lab out
+                    $('#st-progress-bar').css({ 'width': '100%', 'background': '#4f46e5' });
+                }
+
+            } else {
+                // Error audio
+                document.getElementById('audio-error').play();
+                $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                $('#st-photo').attr('src', 'assets/img/students/default.png');
+                $('#st-name').text(data.name || 'Unknown');
+                $('#st-roll').text('Roll No: -');
+                $('#st-course').text('Invalid Scan');
+                $('#st-percentage').text('0%');
+                $('#st-progress-bar').css('width', '0%');
+            }
+
+            // Overlay animation
+            $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+            setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
+            
+            fetchLogs(); // update log for dashboard
+
+        } catch (e) { 
+            console.error("Server Error:", res); 
         }
+    });
+}
 
         $(document).ready(function() {
             const ctx = document.getElementById('todayAttendanceChart').getContext('2d');
@@ -246,9 +362,15 @@ $today_classes = $stmt_timetable->fetchAll();
                 type: 'doughnut',
                 data: {
                     labels: ['Present', 'Absent'],
-                    datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#e5e7eb'], borderWidth: 0 }]
+                    datasets: [{
+                        data: [0, 1],
+                        backgroundColor: ['#10b981', '#e5e7eb'],
+                        borderWidth: 0
+                    }]
                 },
-                options: { cutout: '75%' }
+                options: {
+                    cutout: '75%'
+                }
             });
 
             setInterval(fetchLogs, 5000);
@@ -260,13 +382,21 @@ $today_classes = $stmt_timetable->fetchAll();
 
             $(document).one('click', function() {
                 document.querySelectorAll('audio').forEach(a => {
-                    a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(()=>{});
+                    a.play().then(() => {
+                        a.pause();
+                        a.currentTime = 0;
+                    }).catch(() => {});
                 });
             });
         });
     </script>
 
-    <audio id="audio-success" src="assets/audio/success.mp3" preload="auto"></audio>
+    <!-- <audio id="audio-success" src="assets/audio/success.mp3" preload="auto"></audio> -->
+    <!-- <audio id="audio-error" src="assets/audio/error.mp3" preload="auto"></audio> -->
+
+    <audio id="audio-success" src="assets/audio/check-in.mp3" preload="auto"></audio>
+    <audio id="audio-out" src="assets/audio/bye.mp3" preload="auto"></audio>
     <audio id="audio-error" src="assets/audio/error.mp3" preload="auto"></audio>
 </body>
+
 </html>

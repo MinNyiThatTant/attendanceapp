@@ -4,7 +4,7 @@ import requests
 import time
 
 reader = SimpleMFRC522()
-# Change this to your server's IP address or domain
+# Change this to server's IP address or domain
 API_ENDPOINT = "http://192.168.1.100/attendance_system/process_scan.php"
 
 print("Attendance System: Ready. Scan your ID card...")

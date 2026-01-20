@@ -26,7 +26,7 @@
 
     <script>
         $('#rfid_input').on('keypress', function(e) {
-            if (e.which == 13) { // Enter key
+            if (e.which == 13) { 
                 let uid = $(this).val();
                 $(this).val('');
                 
@@ -50,7 +50,7 @@
             }
         });
 
-        // Input field ကို အမြဲ focus ဖြစ်နေအောင်လုပ်မယ်
+        // Keep focus on input
         $(document).click(function() { $('#rfid_input').focus(); });
     </script>
 </body>

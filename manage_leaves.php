@@ -51,6 +51,7 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Leave Management</title>
@@ -61,19 +62,77 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <style>
-        .leave-container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
-        .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .select2-container--default .select2-selection--single { height: 40px; border: 1px solid #ddd; border-radius: 8px; padding-top: 5px; }
-        .reason-box { grid-column: span 4; }
-        textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; resize: none; }
-        .save-btn { grid-column: span 4; background: #4f46e5; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .save-btn:hover { background: #4338ca; }
-        .btn-icon { text-decoration: none; font-size: 0.9rem; padding: 5px 10px; border-radius: 5px; }
-        .edit-btn { color: #4f46e5; }
-        .delete-btn { color: #ef4444; }
-        .alert { padding: 10px; border-radius: 8px; margin-bottom: 20px; border: 1px solid; }
+        .leave-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding-top: 5px;
+        }
+
+        .reason-box {
+            grid-column: span 4;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            resize: none;
+        }
+
+        .save-btn {
+            grid-column: span 4;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .save-btn:hover {
+            background: #4338ca;
+        }
+
+        .btn-icon {
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .edit-btn {
+            color: #4f46e5;
+        }
+
+        .delete-btn {
+            color: #ef4444;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="leave-container">
@@ -81,7 +140,7 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
             <h2>🏥 Manage <span style="color:#4f46e5">Leaves</span></h2>
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
-        
+
         <?php if (isset($_GET['success'])): ?>
             <div class="alert" style="background:#d1fae5; color:#065f46; border-color:#10b981;">✅ Leave recorded successfully!</div>
         <?php endif; ?>
@@ -131,7 +190,7 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
                     <button type="submit" name="save_leave" class="save-btn">
                         <?= $edit_data ? "Update Record" : "Save Record" ?>
                     </button>
-                    <?php if($edit_data): ?>
+                    <?php if ($edit_data): ?>
                         <a href="manage_leaves.php" style="grid-column: span 4; text-align:center; color:#666; font-size:0.9rem; text-decoration:none;">Cancel Edit</a>
                     <?php endif; ?>
                 </div>
@@ -153,7 +212,9 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
                 </thead>
                 <tbody>
                     <?php if (empty($leaves)): ?>
-                        <tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">No leave records found.</td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:20px; color:#999;">No leave records found.</td>
+                        </tr>
                     <?php else: ?>
                         <?php foreach ($leaves as $l): ?>
                             <tr>
@@ -195,4 +256,5 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
         });
     </script>
 </body>
+
 </html>
