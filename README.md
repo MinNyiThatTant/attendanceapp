@@ -44,7 +44,7 @@ $password = "";
 $dbname = "attendance_db";
 ```
 
-### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖော်ပြပါမည်။ (comming soon)
+### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှု။ (comming soon)
 
 
 ### checking and diagnosis query
