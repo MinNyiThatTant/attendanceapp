@@ -44,4 +44,24 @@ $password = "";
 $dbname = "attendance_db";
 ```
 
-### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှုကို ဆက်လက်ဖော်ပြပါမည်။ (comming soon)
+### ၅။ Raspberry Pi and RFID Card ဖြင့် ချိတ်ဆက်မှု။ (comming soon)
+
+
+### checking and diagnosis query
+```sql
+SELECT 
+    s.roll_no, 
+    s.name as student_name, 
+    m.title as major_name, 
+    s.current_semester,
+    cd.title as course_name,
+    sd.term as course_semester
+FROM student_details s
+JOIN major_details m ON s.major_id = m.id
+JOIN course_assignments ca ON m.id = ca.major_id
+JOIN course_details cd ON ca.course_id = cd.id
+JOIN session_details sd ON cd.session_id = sd.id
+WHERE s.roll_no LIKE '%MC%' 
+  AND s.current_semester COLLATE utf8mb4_general_ci = sd.term COLLATE utf8mb4_general_ci 
+LIMIT 0, 25;
+```

@@ -21,7 +21,7 @@ if (isset($_GET['delete'])) {
 if (isset($_POST['save_registration'])) {
     $student_id = $_POST['student_id'];
     $course_id = $_POST['course_id'];
-    $academic_year = $_POST['academic_year']; 
+    $academic_year = $_POST['academic_year'];
     $reg_id = $_POST['reg_id'];
 
     $stmt_c = $conn->prepare("SELECT session_id FROM course_details WHERE id = ?");
@@ -87,17 +87,41 @@ if (isset($_GET['edit'])) {
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Course Registration</title>
     <link rel="stylesheet" href="css/attendance.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        .readonly-box { background: #f3f4f6; color: #4f46e5; font-weight: bold; cursor: not-allowed; }
-        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
-        .pagination a { padding: 8px 12px; border: 1px solid #4f46e5; border-radius: 4px; text-decoration: none; color: #4f46e5; }
-        .pagination a.active { background: #4f46e5; color: #fff; }
+        .readonly-box {
+            background: #f3f4f6;
+            color: #4f46e5;
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            padding: 8px 12px;
+            border: 1px solid #4f46e5;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #4f46e5;
+        }
+
+        .pagination a.active {
+            background: #4f46e5;
+            color: #fff;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="attendance-header">
@@ -105,6 +129,30 @@ if (isset($_GET['edit'])) {
             <!-- <a href="dashboard.php" class="class-btn" style="background:lightblue; text-decoration:none;"><i class="fa-solid fa-house"></i> Home</a> -->
             <a href="dashboard.php" class="class-btn" style="background:lightblue; text-decoration:none;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
+
+        <div class="registration-card" style="margin-top: 20px; border: 2px dashed #4f46e5; background: #f0f7ff;">
+            <h3>📤 Bulk Import (By Semester)</h3>
+            <form action="import_registration.php" method="POST" enctype="multipart/form-data">
+                <div class="form-container">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label>Academic Year</label>
+                            <input type="text" name="academic_year" placeholder="e.g. 2024-2025" required class="input-box">
+                        </div>
+                        <div class="input-group">
+                            <label>CSV File (Roll No Only)</label>
+                            <input type="file" name="csv_file" accept=".csv" required class="input-box">
+                        </div>
+                        <div class="btn-row" style="display: flex; align-items: flex-end;">
+                            <button type="submit" name="import_submit" class="register-btn" style="background: #4f46e5;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Sync All Courses
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
 
         <div class="registration-card">
             <h3><?= $edit_reg ? '📝 Edit Registration' : '➕ New Registration' ?></h3>
@@ -117,12 +165,12 @@ if (isset($_GET['edit'])) {
                             <select name="student_id" id="student_id" required onchange="filterCourses()" class="input-box">
                                 <option value="">-- Choose Student --</option>
                                 <?php foreach ($students as $s): ?>
-                                    <option value="<?= $s['id'] ?>" 
-                                            data-major-id="<?= $s['major_id'] ?>"
-                                            data-major-name="<?= $s['major_name'] ?>"
-                                            data-semester="<?= $s['current_semester'] ?>"
-                                            data-ay="<?= $s['academic_year'] ?>"
-                                            <?= (isset($edit_reg) && $edit_reg['student_id'] == $s['id']) ? 'selected' : '' ?>>
+                                    <option value="<?= $s['id'] ?>"
+                                        data-major-id="<?= $s['major_id'] ?>"
+                                        data-major-name="<?= $s['major_name'] ?>"
+                                        data-semester="<?= $s['current_semester'] ?>"
+                                        data-ay="<?= $s['academic_year'] ?>"
+                                        <?= (isset($edit_reg) && $edit_reg['student_id'] == $s['id']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($s['name']) ?> (<?= $s['roll_no'] ?>)
                                     </option>
                                 <?php endforeach; ?>
@@ -144,9 +192,9 @@ if (isset($_GET['edit'])) {
                                 <option value="">-- Choose Course --</option>
                                 <?php foreach ($courses as $c): ?>
                                     <option value="<?= $c['id'] ?>"
-                                            data-majors="<?= $c['assigned_majors'] ?>"
-                                            data-semester="<?= $c['term'] ?>"
-                                            <?= (isset($edit_reg) && $edit_reg['course_id'] == $c['id']) ? 'selected' : '' ?>>
+                                        data-majors="<?= $c['assigned_majors'] ?>"
+                                        data-semester="<?= $c['term'] ?>"
+                                        <?= (isset($edit_reg) && $edit_reg['course_id'] == $c['id']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($c['code']) ?> - <?= htmlspecialchars($c['title']) ?> (Sem: <?= $c['term'] ?>)
                                     </option>
                                 <?php endforeach; ?>
@@ -187,6 +235,18 @@ if (isset($_GET['edit'])) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <div class="pagination">
+                <?php
+                $total_stmt = $conn->prepare("SELECT COUNT(*) FROM course_registration cr JOIN student_details sd ON cr.student_id = sd.id $search_query");
+                if ($search) $total_stmt->bindValue(':s', "%$search%");
+                $total_stmt->execute();
+                $total_rows = $total_stmt->fetchColumn();
+                $total_pages = ceil($total_rows / $limit);
+
+                for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=<?= $i ?>&search=<?= $search ?>" class="<?= $page == $i ? 'active' : '' ?>"><?= $i ?></a>
+                <?php endfor; ?>
+            </div>
         </div>
     </div>
 
@@ -198,13 +258,15 @@ if (isset($_GET['edit'])) {
             const ayDisplay = document.getElementById('display_ay');
 
             if (!studentSelect.value) {
-                majorDisplay.value = ""; ayDisplay.value = ""; return;
+                majorDisplay.value = "";
+                ayDisplay.value = "";
+                return;
             }
 
             const selected = studentSelect.options[studentSelect.selectedIndex];
             const majorId = selected.getAttribute('data-major-id');
             const semester = selected.getAttribute('data-semester');
-            
+
             majorDisplay.value = selected.getAttribute('data-major-name');
             ayDisplay.value = selected.getAttribute('data-ay');
 
@@ -228,4 +290,5 @@ if (isset($_GET['edit'])) {
         window.onload = filterCourses;
     </script>
 </body>
+
 </html>
