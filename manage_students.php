@@ -3,7 +3,7 @@ session_start();
 require_once 'database/database.php';
 $db = new Database();
 
-$academic_years = ["2024-2025", "2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
+$academic_years = ["2025-2026", "2026-2027", "2027-2028", "2028-2029", "2029-2030"];
 $edit_student = null;
 
 // PAGINATION SETTINGS 

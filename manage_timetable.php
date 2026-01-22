@@ -3,16 +3,17 @@ session_start();
 require_once 'database/database.php';
 $db = new Database();
 
-// FETCH COURSES BASED ON MAJOR AND SEMESTER (AJAX)
+// 1. FETCH COURSES BASED ON MAJOR AND SEMESTER (AJAX)
 if (isset($_GET['get_courses_ajax'])) {
     $m_id = $_GET['major_id'];
-    $sem_num = $_GET['semester']; // 1, 2, 3...
+    $sem_num = $_GET['semester'];
 
-    // change semester number to term string
+    // change semester number to term string for query
     $suffixes = [1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th", 6 => "6th", 7 => "7th", 8 => "8th", 9 => "9th", 10 => "10th"];
     $prefix = $suffixes[$sem_num] ?? $sem_num . "th";
-    $term_string = $prefix . " semester"; // "1st semester" 
+    $term_string = $prefix . " semester";
 
+    // Query courses for the major and semester 
     $stmt = $db->conn->prepare("SELECT c.id, c.title FROM course_details c 
                                 JOIN course_assignments ca ON c.id = ca.course_id 
                                 JOIN session_details sd ON c.session_id = sd.id
@@ -24,7 +25,7 @@ if (isset($_GET['get_courses_ajax'])) {
     exit;
 }
 
-// DELETE LOGIC
+// 2. DELETE LOGIC
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $db->conn->prepare("DELETE FROM timetable WHERE id = ?")->execute([$id]);
@@ -32,7 +33,7 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// EDIT DATA FETCH
+// 3. EDIT DATA FETCH
 $edit_timetable = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
@@ -41,10 +42,10 @@ if (isset($_GET['edit'])) {
     $edit_timetable = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// SAVE / UPDATE LOGIC
+// 4. SAVE / UPDATE LOGIC
 if (isset($_POST['save_timetable'])) {
     $major_id = $_POST['major_id'];
-    $semester = $_POST['semester'];
+    $semester = $_POST['semester']; // input value (1, 2, 3...)
     $course_id = $_POST['course_id'];
     $day = $_POST['day_of_week'];
     $academic_year = $_POST['academic_year'];
@@ -57,12 +58,12 @@ if (isset($_POST['save_timetable'])) {
     }
 
     $times = [
-        1 => ['09:00:00', '09:59:59'],
-        2 => ['10:00:00', '10:59:59'],
-        3 => ['11:00:00', '11:59:59'],
-        4 => ['13:00:00', '13:59:59'],
-        5 => ['14:00:00', '14:59:59'],
-        6 => ['15:00:00', '16:00:59']
+        1 => ['09:00:00', '10:00:00'],
+        2 => ['10:00:00', '11:00:00'],
+        3 => ['11:00:00', '12:00:00'],
+        4 => ['13:00:00', '14:00:00'],
+        5 => ['14:00:00', '15:00:00'],
+        6 => ['15:00:00', '16:00:00']
     ];
 
     try {
@@ -73,7 +74,8 @@ if (isset($_POST['save_timetable'])) {
         }
 
         foreach ($periods as $p) {
-            $check = $db->conn->prepare("SELECT id FROM timetable WHERE major_id=? AND semester=? AND day_of_week=? AND period=? AND academic_year=?");
+            // Check for duplicate entry - term instead of semester
+            $check = $db->conn->prepare("SELECT id FROM timetable WHERE major_id=? AND term=? AND day_of_week=? AND period=? AND academic_year=?");
             $check->execute([$major_id, $semester, $day, $p, $academic_year]);
 
             if ($check->fetch()) {
@@ -85,7 +87,8 @@ if (isset($_POST['save_timetable'])) {
             $start = $times[$p][0];
             $end = $times[$p][1];
 
-            $sql = "INSERT INTO timetable (major_id, semester, course_id, day_of_week, period, start_time, end_time, academic_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            // Insert column names matching your database (term instead of semester)
+            $sql = "INSERT INTO timetable (major_id, term, course_id, day_of_week, period, start_time, end_time, academic_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             $db->conn->prepare($sql)->execute([$major_id, $semester, $course_id, $day, $p, $start, $end, $academic_year]);
         }
 
@@ -99,6 +102,8 @@ if (isset($_POST['save_timetable'])) {
 }
 
 $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll();
+
+// Display table query - join columns correctly
 $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as course_name 
                                 FROM timetable t 
                                 JOIN major_details m ON t.major_id = m.id 
@@ -185,19 +190,6 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
             background: #f3f4f6;
             color: #4f46e5;
         }
-
-        #scrollUpBtn {
-            position: fixed;
-            bottom: 20px;
-            right: 30px;
-            display: none;
-            background-color: #4f46e5;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
     </style>
 </head>
 
@@ -228,7 +220,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
                 <select name="semester" id="semester_select" required onchange="fetchCourses()">
                     <option value="">-- Choose Semester --</option>
                     <?php for ($i = 1; $i <= 10; $i++): ?>
-                        <option value="<?= $i ?>" <?= (isset($edit_timetable) && $edit_timetable['semester'] == $i) ? 'selected' : '' ?>>
+                        <option value="<?= $i ?>" <?= (isset($edit_timetable) && ($edit_timetable['term'] ?? '') == $i) ? 'selected' : '' ?>>
                             Semester <?= $i ?>
                         </option>
                     <?php endfor; ?>
@@ -240,15 +232,13 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
                 <select name="course_id" id="course_select" required <?= !isset($edit_timetable) ? 'disabled' : '' ?>>
                     <option value="">-- Select Course --</option>
                     <?php if (isset($edit_timetable)):
-                        // Edit Mode 
-                        $s_num = $edit_timetable['semester'];
+                        $s_num = $edit_timetable['term'];
                         $suffixes = [1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th", 6 => "6th", 7 => "7th", 8 => "8th", 9 => "9th", 10 => "10th"];
                         $t_str = ($suffixes[$s_num] ?? $s_num . "th") . " semester";
-
                         $stmt = $db->conn->prepare("SELECT c.id, c.title FROM course_details c 
-                                        JOIN course_assignments ca ON c.id = ca.course_id 
-                                        JOIN session_details sd ON c.session_id = sd.id 
-                                        WHERE ca.major_id = ? AND sd.term = ?");
+                                                    JOIN course_assignments ca ON c.id = ca.course_id 
+                                                    JOIN session_details sd ON c.session_id = sd.id 
+                                                    WHERE ca.major_id = ? AND sd.term = ?");
                         $stmt->execute([$edit_timetable['major_id'], $t_str]);
                         foreach ($stmt->fetchAll() as $ec): ?>
                             <option value="<?= $ec['id'] ?>" <?= ($edit_timetable['course_id'] == $ec['id']) ? 'selected' : '' ?>><?= $ec['title'] ?></option>
@@ -260,10 +250,8 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
             <div class="input-group">
                 <label>Academic Year</label>
                 <select name="academic_year" required>
-                    <?php $ay_list = ["2025-2026", "2026-2027", "2027-2028"];
-                    foreach ($ay_list as $ay): ?>
-                        <option value="<?= $ay ?>" <?= (isset($edit_timetable) && $edit_timetable['academic_year'] == $ay) ? 'selected' : '' ?>><?= $ay ?></option>
-                    <?php endforeach; ?>
+                    <option value="2025-2026" <?= (isset($edit_timetable) && $edit_timetable['academic_year'] == "2025-2026") ? 'selected' : '' ?>>2025-2026</option>
+                    <option value="2026-2027" <?= (isset($edit_timetable) && $edit_timetable['academic_year'] == "2026-2027") ? 'selected' : '' ?>>2026-2027</option>
                 </select>
             </div>
 
@@ -311,7 +299,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
                         <td><?= $t['day_of_week'] ?></td>
                         <td><strong>P-<?= $t['period'] ?></strong></td>
                         <td><?= $t['major_name'] ?></td>
-                        <td>Sem-<?= $t['semester'] ?></td>
+                        <td>Sem-<?= $t['term'] ?></td>
                         <td><?= $t['course_name'] ?></td>
                         <td><small><?= date("g:i A", strtotime($t['start_time'])) ?> - <?= date("g:i A", strtotime($t['end_time'])) ?></small></td>
                         <td>
@@ -331,7 +319,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
             const courseSelect = document.getElementById('course_select');
 
             if (!majorId || !semester) {
-                courseSelect.innerHTML = '<option value="">-- First Select Major & Sem --</option>';
+                courseSelect.innerHTML = '<option value="">-- Choose Major & Sem --</option>';
                 courseSelect.disabled = true;
                 return;
             }
@@ -341,14 +329,17 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
                 .then(r => r.json())
                 .then(data => {
                     courseSelect.innerHTML = '<option value="">-- Select Course --</option>';
-                    data.forEach(c => {
-                        courseSelect.innerHTML += `<option value="${c.id}">${c.title}</option>`;
-                    });
-                    courseSelect.disabled = false;
+                    if (data.length === 0) {
+                        courseSelect.innerHTML = '<option value="">No courses assigned</option>';
+                    } else {
+                        data.forEach(c => {
+                            courseSelect.innerHTML += `<option value="${c.id}">${c.title}</option>`;
+                        });
+                        courseSelect.disabled = false;
+                    }
                 });
         }
 
-        // SweetAlert messages based on URL params (same as your previous logic)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('msg')) {
             const msg = urlParams.get('msg');

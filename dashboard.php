@@ -301,60 +301,74 @@ $today_classes = $stmt_timetable->fetchAll();
         }
 
         function submitScan(uid) {
-    if (!uid) return;
-    $('#manual_uid').val('');
+            if (!uid) return;
+            $('#manual_uid').val('');
 
-    $.post('process_scan.php', { rfid_uid: uid }, function(res) {
-        try {
-            const data = JSON.parse(res);
-            
-            if (data.success) {
-                // for success audio
-                if (data.type === 'Lab Out') {
-                    document.getElementById('audio-out').play();
-                } else {
-                    document.getElementById('audio-success').play();
+            $.ajax({
+                url: 'process_scan.php',
+                type: 'POST',
+                data: {
+                    rfid_uid: uid
+                },
+                success: function(res) {
+                    // Parse response 
+                    let data = (typeof res === 'object') ? res : JSON.parse(res);
+
+                    if (data.success) {
+                        // Sound Effects
+                        try {
+                            if (data.type === 'Lab Out') {
+                                document.getElementById('audio-out').play();
+                            } else {
+                                document.getElementById('audio-success').play();
+                            }
+                        } catch (e) {}
+
+                        // UI Update
+                        $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
+                        $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
+                        $('#st-name').text(data.name);
+                        $('#st-roll').text('Roll No: ' + data.roll_no);
+                        $('#st-course').text(data.course);
+
+                        if (data.type === 'Attendance') {
+                            $('#st-percentage').text(data.percentage);
+                            $('#st-progress-bar').css({
+                                'width': data.percentage,
+                                'background': '#10b981'
+                            });
+                        } else {
+                            $('#st-percentage').text(data.type);
+                            $('#st-progress-bar').css({
+                                'width': '100%',
+                                'background': '#4f46e5'
+                            });
+                        }
+                    } else {
+                        try {
+                            document.getElementById('audio-error').play();
+                        } catch (e) {}
+                        $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
+                        $('#st-photo').attr('src', 'assets/img/students/default.png');
+                        $('#st-name').text(data.name || 'Unknown');
+                        $('#st-roll').text('Roll No: -');
+                        $('#st-course').text('Invalid Scan');
+                        $('#st-percentage').text('0%');
+                        $('#st-progress-bar').css('width', '0%');
+                    }
+
+                    $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
+                    setTimeout(() => {
+                        $('#scan-overlay').fadeOut(400);
+                    }, 3000);
+                    fetchLogs();
+                },
+                error: function(xhr) {
+                    console.error("Critical Error:", xhr.responseText);
+                    alert("System Error! Check the console for details.");
                 }
-
-                // UI Update
-                $('#scan-status').text('✅ ' + data.message).css('color', '#10b981');
-                $('#st-photo').attr('src', 'assets/img/students/' + (data.photo || 'default.png'));
-                $('#st-name').text(data.name);
-                $('#st-roll').text('Roll No: ' + data.roll_no);
-                $('#st-course').text(data.course); // lab or course name
-                
-                // Progress Bar Update
-                if (data.type === 'Attendance') {
-                    $('#st-percentage').text(data.percentage);
-                    $('#st-progress-bar').css({ 'width': data.percentage, 'background': '#10b981' });
-                } else {
-                    $('#st-percentage').text(data.type); // lab in or lab out
-                    $('#st-progress-bar').css({ 'width': '100%', 'background': '#4f46e5' });
-                }
-
-            } else {
-                // Error audio
-                document.getElementById('audio-error').play();
-                $('#scan-status').text('❌ ' + data.message).css('color', '#ef4444');
-                $('#st-photo').attr('src', 'assets/img/students/default.png');
-                $('#st-name').text(data.name || 'Unknown');
-                $('#st-roll').text('Roll No: -');
-                $('#st-course').text('Invalid Scan');
-                $('#st-percentage').text('0%');
-                $('#st-progress-bar').css('width', '0%');
-            }
-
-            // Overlay animation
-            $('#scan-overlay').css('display', 'flex').hide().fadeIn(400);
-            setTimeout(() => { $('#scan-overlay').fadeOut(400); }, 3000);
-            
-            fetchLogs(); // update log for dashboard
-
-        } catch (e) { 
-            console.error("Server Error:", res); 
+            });
         }
-    });
-}
 
         $(document).ready(function() {
             const ctx = document.getElementById('todayAttendanceChart').getContext('2d');

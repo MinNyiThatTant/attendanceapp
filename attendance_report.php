@@ -23,18 +23,17 @@ $f_date = $_GET['date'] ?? date('Y-m-d');
 $f_month = $_GET['month'] ?? date('Y-m');
 
 $report_data = [];
-$attendance_percentage = 0;
 $total_class_days = 0;
 
 if ($f_course) {
     if ($f_type == 'daily') {
-        // --- Daily Query ---
-        $sql = "SELECT s.name, s.roll_no, m.title as major_name,
+        // --- Daily Query: LEFT JOIN ကိုသုံးပြီး Register လုပ်ထားသူအားလုံးကို ဆွဲထုတ်သည် ---
+        $sql = "SELECT s.id, s.name, s.roll_no, m.title as major_name,
                        CASE 
                          WHEN a.status = 'Present' THEN 'Present'
                          WHEN l.id IS NOT NULL THEN 'Leave'
                          ELSE 'Absent'
-                       END as status
+                       END as attendance_status
                 FROM course_registration r
                 JOIN student_details s ON r.student_id = s.id
                 JOIN major_details m ON s.major_id = m.id
@@ -42,19 +41,16 @@ if ($f_course) {
                     AND a.course_id = r.course_id 
                     AND a.on_date = :f_date
                 LEFT JOIN student_leaves l ON s.id = l.student_id 
-                    AND DATE(:f_date2) >= DATE(l.from_date) 
-                    AND DATE(:f_date3) <= DATE(l.to_date)
+                    AND :f_date_leave BETWEEN l.from_date AND l.to_date
                 WHERE r.course_id = :course_id";
 
         $params = [
             ':course_id' => $f_course, 
             ':f_date' => $f_date,
-            ':f_date2' => $f_date,
-            ':f_date3' => $f_date
+            ':f_date_leave' => $f_date
         ];
     } else {
-        // --- Monthly Query ---
-        // Count total class days in the month (excluding weekends and holidays)
+        // --- Monthly Query: လအလိုက် အတန်းချိန် စုစုပေါင်းကို အရင်ရှာသည် ---
         $stmt_days = $conn->prepare("SELECT COUNT(DISTINCT on_date) FROM attendance_details WHERE course_id = ? AND on_date LIKE ?");
         $stmt_days->execute([$f_course, $f_month . '%']);
         $total_class_days = $stmt_days->fetchColumn() ?: 0;
@@ -87,49 +83,31 @@ if ($f_course) {
     $stmt->execute($params);
     $report_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Leave Days Calculation for Monthly Report
+    // Monthly အတွက် ခွင့်ရက်နှင့် ပျက်ကွက်ရက်ကို တွက်ချက်ခြင်း
     if ($f_type == 'monthly') {
         foreach ($report_data as &$row) {
-            $leave_stmt = $conn->prepare("SELECT from_date, to_date FROM student_leaves WHERE student_id = ? AND (from_date LIKE ? OR to_date LIKE ? OR (from_date < ? AND to_date > ?))");
+            $leave_stmt = $conn->prepare("SELECT from_date, to_date FROM student_leaves WHERE student_id = ? AND 
+                                         (from_date LIKE ? OR to_date LIKE ? OR (from_date < ? AND to_date > ?))");
             $leave_stmt->execute([$row['id'], $f_month . '%', $f_month . '%', $f_month . '-01', $f_month . '-01']);
             $leaves = $leave_stmt->fetchAll();
             
-            $valid_leave_days = 0;
-            $month_start = new DateTime($f_month . "-01");
-            $month_end = new DateTime($month_start->format('Y-m-t'));
+            $l_days = 0;
+            $m_start = new DateTime($f_month . "-01");
+            $m_end = new DateTime($m_start->format('Y-m-t'));
 
             foreach ($leaves as $lv) {
-                $lv_start = new DateTime(max($lv['from_date'], $month_start->format('Y-m-d')));
-                $lv_end = new DateTime(min($lv['to_date'], $month_end->format('Y-m-d')));
-                
+                $lv_start = new DateTime(max($lv['from_date'], $m_start->format('Y-m-d')));
+                $lv_end = new DateTime(min($lv['to_date'], $m_end->format('Y-m-d')));
                 while ($lv_start <= $lv_end) {
-                    if ($lv_start->format('N') < 6) { // if no saturday(6) or sunday(7)
-                        $valid_leave_days++;
-                    }
+                    if ($lv_start->format('N') < 6) $l_days++; // စနေ၊ တနင်္ဂနွေ ဖယ်ပြီး ခွင့်ရက်ရေတွက်ခြင်း
                     $lv_start->modify('+1 day');
                 }
             }
-            $row['leave_days'] = $valid_leave_days;
+            $row['leave_days'] = $l_days;
+            // ပျက်ကွက်ရက် = စုစုပေါင်းအတန်းချိန် - (တက်ရက် + ခွင့်ရက်)
+            $present_total = $row['rfid_present'] + $l_days;
+            $row['absent_days'] = ($total_class_days > $present_total) ? ($total_class_days - $present_total) : 0;
         }
-        unset($row);
-    }
-
-    // Stats Calculation
-    $total_records = count($report_data);
-    if ($f_type == 'daily') {
-        $present_count = 0;
-        foreach ($report_data as $row) {
-            if ($row['status'] == 'Present' || $row['status'] == 'Leave') $present_count++;
-        }
-        $attendance_percentage = ($total_records > 0) ? round(($present_count / $total_records) * 100, 1) : 0;
-    } else {
-        $total_p_days = 0;
-        $total_possible_days = $total_records * $total_class_days;
-        foreach ($report_data as $row) { 
-            $student_total = $row['rfid_present'] + $row['leave_days'];
-            $total_p_days += ($student_total > $total_class_days) ? $total_class_days : $student_total; 
-        }
-        $attendance_percentage = ($total_possible_days > 0) ? round(($total_p_days / $total_possible_days) * 100, 1) : 0;
     }
 }
 ?>
@@ -142,20 +120,21 @@ if ($f_course) {
     <link rel="stylesheet" href="css/attendance.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-box { padding: 15px; border-radius: 8px; color: white; text-align: center; }
-        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #fff; }
-        .btn-excel { background-color: #16a34a; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: #fff; }
+        .absent-text { color: #ef4444; font-weight: bold; }
+        .present-text { color: #10b981; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header class="attendance-header" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <header class="attendance-header" style="display:flex; justify-content: space-between; align-items: center; margin: 20px 0;">
         <h1>📊 Attendance <span style="color:#4f46e5">Report</span></h1>
         <div style="display: flex; gap: 10px;">
             <?php if ($f_course): ?>
-                <a href="export_excel.php?major_id=<?= $f_major ?>&course_id=<?= $f_course ?>&report_type=<?= $f_type ?>&date=<?= $f_date ?>&month=<?= $f_month ?>" class="btn-excel">📊 Export Excel</a>
+                <a href="export_excel.php?<?= $_SERVER['QUERY_STRING'] ?>" class="class-btn" style="background:#16a34a; text-decoration:none;"><i class="fa-solid fa-file-excel"></i> Export Excel</a>
             <?php endif; ?>
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </div>
@@ -163,10 +142,10 @@ if ($f_course) {
 
     <div class="card" style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <form method="GET">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
                 <div class="input-group">
                     <label>Major</label>
-                    <select name="major_id" id="major_filter" onchange="updateCourseFilter()" style="width:100%; padding:8px;">
+                    <select name="major_id" id="major_filter" onchange="updateCourseFilter()">
                         <option value="">All Majors</option>
                         <?php foreach ($majors as $m): ?>
                             <option value="<?= $m['id'] ?>" <?= $f_major == $m['id'] ? 'selected' : '' ?>><?= $m['title'] ?></option>
@@ -175,7 +154,7 @@ if ($f_course) {
                 </div>
                 <div class="input-group">
                     <label>Course</label>
-                    <select name="course_id" id="course_filter" required style="width:100%; padding:8px;">
+                    <select name="course_id" id="course_filter" required>
                         <option value="">-- Choose Course --</option>
                         <?php foreach ($courses as $c): ?>
                             <option value="<?= $c['id'] ?>" data-majors="<?= $c['assigned_majors'] ?>" <?= $f_course == $c['id'] ? 'selected' : '' ?>>
@@ -185,37 +164,29 @@ if ($f_course) {
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>Report Type</label>
-                    <select name="report_type" id="report_type" onchange="toggleDateInput()" style="width:100%; padding:8px;">
-                        <option value="daily" <?= $f_type == 'daily' ? 'selected' : '' ?>>Daily Report</option>
-                        <option value="monthly" <?= $f_type == 'monthly' ? 'selected' : '' ?>>Monthly Report</option>
+                    <label>Type</label>
+                    <select name="report_type" id="report_type" onchange="toggleDateInput()">
+                        <option value="daily" <?= $f_type == 'daily' ? 'selected' : '' ?>>Daily</option>
+                        <option value="monthly" <?= $f_type == 'monthly' ? 'selected' : '' ?>>Monthly</option>
                     </select>
                 </div>
                 <div class="input-group" id="date_input_group">
-                    <label>Select Date</label>
-                    <input type="date" name="date" value="<?= $f_date ?>" style="width:100%; padding:7px;">
+                    <label>Date</label>
+                    <input type="date" name="date" value="<?= $f_date ?>">
                 </div>
                 <div class="input-group" id="month_input_group" style="display:none;">
-                    <label>Select Month</label>
-                    <input type="month" name="month" value="<?= $f_month ?>" style="width:100%; padding:7px;">
+                    <label>Month</label>
+                    <input type="month" name="month" value="<?= $f_month ?>">
                 </div>
                 <div style="display: flex; align-items: flex-end;">
-                    <button type="submit" class="save-btn" style="width: 100%; height: 40px; background:#4f46e5; color:white; border:none; border-radius:5px; cursor:pointer;">Generate</button>
+                    <button type="submit" class="save-btn" style="width: 100%; background:#4f46e5;">Generate</button>
                 </div>
             </div>
         </form>
     </div>
 
     <?php if ($f_course): ?>
-        <div class="stats-grid">
-            <div class="stat-box" style="background: #4f46e5;"><small>Total Students</small><div style="font-size:1.5rem; font-weight:bold;"><?= $total_records ?></div></div>
-            <div class="stat-box" style="background: #f59e0b;"><small>Overall Attendance Rate</small><div style="font-size:1.5rem; font-weight:bold;"><?= $attendance_percentage ?>%</div></div>
-            <?php if ($f_type == 'monthly'): ?>
-                <div class="stat-box" style="background: #10b981;"><small>Total Class Days</small><div style="font-size:1.5rem; font-weight:bold;"><?= $total_class_days ?></div></div>
-            <?php endif; ?>
-        </div>
-
-        <div class="card" style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div class="card" style="padding:0; overflow: hidden; border: 1px solid #e2e8f0;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
@@ -224,14 +195,14 @@ if ($f_course) {
                         <?php if ($f_type == 'daily'): ?>
                             <th style="padding: 15px; text-align: center;">Status</th>
                         <?php else: ?>
-                            <th style="padding: 15px; text-align: center;">Attendance (RFID + Leave)</th>
-                            <th style="padding: 15px; text-align: center;">Percentage</th>
+                            <th style="padding: 15px; text-align: center;">Present (RFID + Leave)</th>
+                            <th style="padding: 15px; text-align: center;">Absence</th>
                         <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php 
-                    $is_weekend = (date('N', strtotime($f_date)) >= 6); // Saturday or Sunday
+                    $is_weekend = (date('N', strtotime($f_date)) >= 6);
                     foreach ($report_data as $row): 
                     ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -244,31 +215,19 @@ if ($f_course) {
                                     if ($is_weekend) {
                                         echo '<span class="badge" style="background: #94a3b8;">Weekend</span>';
                                     } else {
-                                        $bg = '#ef4444'; // Absent
-                                        if ($row['status'] == 'Present') $bg = '#10b981';
-                                        if ($row['status'] == 'Leave') $bg = '#f59e0b';
-                                        echo '<span class="badge" style="background: '.$bg.';">'.$row['status'].'</span>';
+                                        $status = $row['attendance_status'];
+                                        $bg = ($status == 'Present') ? '#10b981' : (($status == 'Leave') ? '#f59e0b' : '#ef4444');
+                                        echo '<span class="badge" style="background: '.$bg.';">'.$status.'</span>';
                                     }
                                 ?>
                             </td>
-                        <?php else: 
-                            $combined_present = $row['rfid_present'] + $row['leave_days'];
-                            if ($combined_present > $total_class_days && $total_class_days > 0) $combined_present = $total_class_days;
-                            $percent = ($total_class_days > 0) ? round(($combined_present / $total_class_days) * 100, 1) : 0;
-                        ?>
+                        <?php else: ?>
                             <td style="padding: 15px; text-align: center;">
-                                <strong><?= $combined_present ?></strong> / <?= $total_class_days ?>
-                                <div style="font-size: 0.75rem; color: #64748b;">
-                                    (RFID: <?= $row['rfid_present'] ?> + Leave: <?= $row['leave_days'] ?>)
-                                </div>
+                                <span class="present-text"><?= $row['rfid_present'] + $row['leave_days'] ?></span> / <?= $total_class_days ?>
+                                <div style="font-size: 0.7rem; color: #64748b;">(RFID: <?= $row['rfid_present'] ?>, Leave: <?= $row['leave_days'] ?>)</div>
                             </td>
                             <td style="padding: 15px; text-align: center;">
-                                <div style="width: 100px; background: #e2e8f0; height: 8px; border-radius: 4px; margin: 5px auto;">
-                                    <div style="width: <?= $percent ?>%; background: <?= $percent < 75 ? '#ef4444' : '#10b981' ?>; height: 100%; border-radius: 4px;"></div>
-                                </div>
-                                <span style="font-weight: bold; color: <?= $percent < 75 ? '#ef4444' : '#10b981' ?>;">
-                                    <?= $percent ?>%
-                                </span>
+                                <span class="absent-text"><?= $row['absent_days'] ?> Days</span>
                             </td>
                         <?php endif; ?>
                     </tr>
