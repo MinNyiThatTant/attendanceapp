@@ -61,7 +61,7 @@ $holidays = $conn->query("SELECT * FROM holidays ORDER BY holiday_date DESC")->f
 <div class="container">
     <header class="attendance-header">
         <div class="attendance-brand">
-            <h1>🎉 Manage <span style="color:var(--primary)">Holidays</span></h1>
+            <h1>⛱️ Manage <span style="color:var(--primary)">Holidays</span></h1>
         </div>
         <div class="back-btn-box">
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;">

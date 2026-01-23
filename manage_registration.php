@@ -131,7 +131,7 @@ if (isset($_GET['edit'])) {
         </header>
 
         <div class="registration-card" style="margin-top: 20px; border: 2px dashed #4f46e5; background: #f0f7ff;">
-            <h3>📤 Bulk Import (By Semester)</h3>
+            <h3>📤 Bulk Import (By Semester - only Roll No use)</h3>
             <form action="import_registration.php" method="POST" enctype="multipart/form-data">
                 <div class="form-container">
                     <div class="form-row">
@@ -155,7 +155,7 @@ if (isset($_GET['edit'])) {
 
 
         <div class="registration-card">
-            <h3><?= $edit_reg ? '📝 Edit Registration' : '➕ New Registration' ?></h3>
+            <h3><?= $edit_reg ? '📝 Edit Registration' : '💳 New Registration' ?></h3>
             <form method="POST">
                 <input type="hidden" name="reg_id" value="<?= $edit_reg['id'] ?? '' ?>">
                 <div class="form-container">

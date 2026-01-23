@@ -175,29 +175,97 @@ $today_classes = $stmt_timetable->fetchAll();
             font-size: 0.8rem;
             margin-left: 10px;
         }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        /* Header/Navigation responsive */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            flex-wrap: wrap;
+            /* small screen */
+            gap: 15px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Summary Cards (Present, Classes, Leave) */
+        .summary-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Live Attendance & Chart Grid */
+        .log-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        /* scroll for table*/
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Mobile Screen  */
+        @media (max-width: 768px) {
+            .log-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .scan-card {
+                width: 90%;
+                /* Scanner Popup */
+            }
+
+            .dashboard-header {
+                justify-content: center;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="card" style="margin-bottom:20px; display:flex; justify-content: space-between; align-items: center; padding: 15px 25px;">
-            <div style="display:flex; gap:12px; flex-wrap: wrap; align-items: center;">
-                <h2 style="margin:0; font-size: 1.2rem;">Dashboard</h2>
-                <span class="ay-badge">AY: <?= $current_academic_year ?></span>
-                <div style="display:flex; gap:8px; margin-left:15px;">
-                    <a href="manage_majors.php" class="nav-link-btn">⚙️ Majors</a>
-                    <a href="manage_courses.php" class="nav-link-btn">📚 Courses</a>
-                    <a href="manage_students.php" class="nav-link-btn">👨‍🎓 Students</a>
-                    <a href="manage_registration.php" class="nav-link-btn">📝 Registration</a>
-                    <a href="attendance_report.php" class="nav-link-btn">📊 Reports</a>
-                    <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
-                    <a href="holidays.php" class="nav-link-btn">🎉 Holidays</a>
-                    <a href="manage_leaves.php" class="nav-link-btn">🏥 Leave</a>
-                    <a href="computer_usage_report.php" class="nav-link-btn">🖥️ Computer Lab</a>
-                </div>
-            </div>
-            <a href="logout.php" style="background:#ef4444; color:white; text-decoration:none; padding:10px 20px; border-radius:8px;">Logout</a>
+        <div class="card dashboard-header" style="margin-bottom:20px; display:flex; justify-content: space-between; align-items: center; padding: 15px 25px; flex-wrap: wrap; gap: 15px;">
+    
+    <div style="display:flex; gap:12px; flex-wrap: wrap; align-items: center;">
+        <h2 style="margin:0; font-size: 1.2rem;">Dashboard</h2>
+        <span class="ay-badge">AY: <?= $current_academic_year ?></span>
+        
+        <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <a href="manage_majors.php" class="nav-link-btn">🎓 Majors</a>
+            <a href="manage_courses.php" class="nav-link-btn">📚 Courses</a>
+            <a href="manage_students.php" class="nav-link-btn">👨‍🎓 Students</a>
+            <a href="manage_registration.php" class="nav-link-btn">📝 Registration</a>
+            <a href="attendance_report.php" class="nav-link-btn">📊 Reports</a>
+            <a href="manage_timetable.php" class="nav-link-btn">📅 Timetable</a>
+            <a href="holidays.php" class="nav-link-btn">⛱️ Holidays</a>
+            <a href="manage_leaves.php" class="nav-link-btn">🏥 Leave</a>
+            <a href="computer_usage_report.php" class="nav-link-btn">🖥️ Computer Lab</a>
         </div>
+    </div>
+
+    <a href="logout.php" style="background:#ef4444; color:white; text-decoration:none; padding:10px 20px; border-radius:8px; white-space: nowrap; margin-left: auto;">Logout</a>
+
+</div>
 
         <?php if ($holiday_info): ?>
             <div class="holiday-alert">
@@ -260,20 +328,22 @@ $today_classes = $stmt_timetable->fetchAll();
             <?php endforeach; ?>
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 30px;">
+        <div class="log-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 30px;">
             <div class="card">
                 <h3>📡 Live Attendance Log</h3>
-                <table class="student-table">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Student</th>
-                            <th>Course</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendance-body"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Student</th>
+                                <th>Course</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-body"></tbody>
+                    </table>
+                </div>
             </div>
             <div class="card" style="text-align: center;">
                 <h3>Today's Ratio</h3>
