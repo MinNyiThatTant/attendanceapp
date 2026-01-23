@@ -145,7 +145,7 @@ $majors = $db->conn->query("SELECT * FROM major_details")->fetchAll(PDO::FETCH_A
         </header>
 
         <div class="card" style="margin-bottom: 25px;">
-            <h3><?= $edit_course ? "📝 Edit Course" : "➕ Add New Course" ?></h3>
+            <h3><?= $edit_course ? "📝 Edit Course" : "📋 Add New Course" ?></h3>
             <form method="POST">
                 <input type="hidden" name="course_id" value="<?= $edit_course['id'] ?? '' ?>">
                 

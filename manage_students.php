@@ -213,7 +213,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         </div>
 
         <div class="card">
-            <h3><?= $edit_student ? '📝 Edit Student' : '➕ Add New Student' ?></h3>
+            <h3><?= $edit_student ? '📝 Edit Student' : '🙎‍♂️ Add New Student' ?></h3>
             <form method="POST" enctype="multipart/form-data" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px;">
                 <input type="hidden" name="student_id" value="<?= $edit_student['id'] ?? '' ?>">
                 <input type="hidden" name="old_photo" value="<?= $edit_student['photo'] ?? 'default.png' ?>">
