@@ -1,5 +1,5 @@
-# Student Attendance Record System Using Raspberry Pi
-## [SARS]
+# Student Attendance Management System Using Raspberry Pi
+## [SAMS]
 PHP, HTML, CSS, JavaScript နှင့် MySQL တို့ကို အသုံးပြု၍ ရေးသားထားသော System တစ်ခု ဖြစ်သည်။
 
 ## ✨ Features
