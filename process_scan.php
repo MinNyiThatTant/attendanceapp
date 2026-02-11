@@ -16,10 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
 
     $current_month = (int)date('m');
     $current_year = (int)date('Y');
+    // Academic Year 
     $current_academic_year = ($current_month < 6) ? ($current_year - 1) . "-" . $current_year : $current_year . "-" . ($current_year + 1);
 
     try {
-        // take current_semester from student_details table
+        // check student
         $stmt = $db->conn->prepare("SELECT id, name, roll_no, major_id, current_semester, photo FROM student_details WHERE rfid_uid = ?");
         $stmt->execute([$uid]);
         $student = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -32,8 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         $student_id = $student['id'];
         $student_sem = $student['current_semester']; 
 
-        // Timetable Query
-        $time_sql = "SELECT t.id, t.course_id, t.end_time, c.title as course_title, c.total_classes 
+        // search attendance and reterive session_id
+        $time_sql = "SELECT t.id, t.course_id, t.end_time, c.title as course_title, c.session_id 
                      FROM timetable t
                      JOIN course_details c ON t.course_id = c.id
                      WHERE t.major_id = ? 
@@ -48,23 +49,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
         $current_class = $time_stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($current_class) {
-            // Attendance Logic
+            // attendance logic
             $course_id = $current_class['course_id'];
             $timetable_id = $current_class['id'];
+            $session_id = $current_class['session_id'];
 
+            // today check in
             $check = $db->conn->prepare("SELECT id FROM attendance_details WHERE student_id = ? AND course_id = ? AND on_date = ? AND timetable_id = ?");
             $check->execute([$student_id, $course_id, $date, $timetable_id]);
             
             if (!$check->fetch()) {
-                $ins = $db->conn->prepare("INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status, academic_year, timetable_id) VALUES (?, ?, ?, ?, 'Present', ?, ?)");
-                $ins->execute([$student_id, $course_id, $date, $current_time, $current_academic_year, $timetable_id]);
+                // Attendance with session_id
+                $ins = $db->conn->prepare("INSERT INTO attendance_details (student_id, course_id, on_date, on_time, status, academic_year, timetable_id, session_id) VALUES (?, ?, ?, ?, 'Present', ?, ?, ?)");
+                $ins->execute([$student_id, $course_id, $date, $current_time, $current_academic_year, $timetable_id, $session_id]);
+                
                 $msg = 'Attendance Marked!';
+                $success = true;
             } else {
-                $msg = 'Already Checked-in';
+                $msg = 'Already Checked-in for this class!';
+                $success = true; 
             }
 
             echo json_encode([
-                'success' => true,
+                'success' => $success,
                 'message' => $msg,
                 'name' => $student['name'],
                 'roll_no' => $student['roll_no'],
@@ -73,36 +80,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['rfid_uid'])) {
                 'course' => $current_class['course_title']
             ]);
         } else {
-            // Computer Lab Logic (check-in/check-out) 
-            $check_lab = $db->conn->prepare("SELECT id FROM computer_usage_logs WHERE student_id = ? AND usage_date = ? AND check_out_time IS NULL LIMIT 1");
-            $check_lab->execute([$student_id, $date]);
-            $lab_record = $check_lab->fetch(PDO::FETCH_ASSOC);
-
-            if ($lab_record) {
-                // Check-out 
-                $update_lab = $db->conn->prepare("UPDATE computer_usage_logs SET check_out_time = ? WHERE id = ?");
-                $update_lab->execute([$current_time, $lab_record['id']]);
-                $lab_msg = "Lab Check-out Success";
-                $type = "Lab Out";
-            } else {
-                // Check-in (new record)
-                $insert_lab = $db->conn->prepare("INSERT INTO computer_usage_logs (student_id, usage_date, check_in_time) VALUES (?, ?, ?)");
-                $insert_lab->execute([$student_id, $date, $current_time]);
-                $lab_msg = "Lab Check-in Success";
-                $type = "Lab In";
-            }
-
+            // if scan, when no class
             echo json_encode([
-                'success' => true, 
-                'message' => $lab_msg, 
+                'success' => false, 
+                'message' => 'No scheduled class for this time.', 
                 'name' => $student['name'], 
                 'roll_no' => $student['roll_no'],
                 'photo' => $student['photo'] ?: 'default.png',
-                'type' => $type,
-                'course' => 'Computer Lab'
+                'type' => 'No Class',
+                'course' => '-'
             ]);
         }
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'DB Error: ' . $e->getMessage()]);
     }
 }
+?>
