@@ -46,9 +46,9 @@ $dbname = "attendance_db";
 
 ### 5. Raspberry Pi Apache Server Configuration
 
-##### hostname : raspberrypi
-##### username : raspberrypi
-##### password : raspberrypi
+##### **hostname** : `raspberrypi`
+##### **username** : `raspberrypi`
+##### **password** : `raspberrypi`
 ---
 
 ### (i) System Configuration
