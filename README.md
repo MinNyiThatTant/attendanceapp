@@ -54,96 +54,96 @@ password : name
 
 ---
 
-## 1. System Configuration
+### 1. System Configuration
 ```bash
 sudo raspi-config
 ```
 
-## System Update
+### System Update
 ```
 sudo apt update
 ```
 
-## Install Required Packages
+### Install Required Packages
 ```
 sudo apt install xrdp -y
 sudo apt install apache2 -y
 sudo apt install mariadb-server -y
 ```
-# check browser with IP for Apache Debian
+### check browser with IP for Apache Debian
 
-## Database Security Setup
+### Database Security Setup
 ```
 sudo mysql_secure_installation
 ```
-# OR
+#### OR
 ```
 sudo mariadb-secure-installation
 ```
 
-## PHP & phpMyAdmin Installation
+### PHP & phpMyAdmin Installation
 ```
 sudo apt install php libapache2-mod-php php-mysql -y
 sudo apt install phpmyadmin -y
 ```
 
-# default login
+### default login
 username : root
 pass     : admin
 
-## Set Directory Permissions
+### Set Directory Permissions
 ```
 sudo chown -R $USER:$USER /var/www/html/
 sudo chmod -R 755 /var/www/html/
 ```
 
-## Root file manager access
+### Root file manager access
 ```
 sudo pcmanfm
 ```
 
-## Project Permissions
+### Project Permissions
 ```
 sudo chown -R www-data:www-data /var/www/html/projectname
 sudo chmod -R 755 /var/www/html/projectname
 sudo chmod 666 /dev/input/event4
 ```
 
-## Python3 & pip3 Installation
+### Python3 & pip3 Installation
 ```
 sudo apt update
 ```
-# Method 1: Install python3-evdev
+#### Method 1: Install python3-evdev
 ```
 sudo apt install python3-evdev
 ```
-# OR
+#### OR
 ```
 sudo apt-get install python3-evdev
 ```
-# Method 2: Install Python packages
+#### Method 2: Install Python packages
 ```
 sudo apt install python3-pip python3-tk python3-dev sdotool -y
 sudo pip3 install requests evdev
 ```
 
-## Myanmar Font & Input Libraries
-# Install pyautogui
+### Myanmar Font & Input Libraries
+#### Install pyautogui
 ```
 sudo apt-get install python3-pyautogui
 ```
-# OR enable uinput module
+#### OR enable uinput module
 ```
 sudo modprobe uinput
 ```
 
-# Install Python input libraries
+### Install Python input libraries
 ```
 pip install pynput --break-system-packages
 pip install pyautogui --break-system-packages
 ```
 
-## Identify Card Reader on Raspberry pi
+### Identify Card Reader on Raspberry pi
 ```
 lsusb
 cat /proc/bus/input/devices
@@ -153,14 +153,14 @@ cat /dev/input/by-id/usb-13ba_Barcode_Reader-event-kbd
 13ba:0018 PCPlay Barcode PCP-BCG4209
 ```
 
-## Config RFID udev rule
+### Config RFID udev rule
 ```
 sudo nano /etc/udev/rules.d/99-rfid.rules
 SUBSYSTEM=="input", ATTRS{idVendor}=="13ba", ATTRS{idProduct}=="0018", MODE="0666"
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-## Auto-start Browser (optional)
+### Auto-start Browser (optional)
 ```
 mkdir -p /home/pi/.config/lxsession/LXDE-pi/
 nano /home/pi/.config/lxsession/LXDE-pi/autostart
