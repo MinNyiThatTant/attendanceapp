@@ -166,13 +166,16 @@ nano /home/pi/.config/lxsession/LXDE-pi/autostart
 ```
 
 ### Remote Connection
-``` ssh raspberrypi@raspberrypi.local
+```
+ssh raspberrypi@raspberrypi.local
 ```
 ##### (or)
-``` ssh raspberrypi@0.0.0.0
+```
+ssh raspberrypi@0.0.0.0
 ```
 #### in Run Box
-``` mstsc
+```
+mstsc
 ```
 
 ### checking and diagnosis query
