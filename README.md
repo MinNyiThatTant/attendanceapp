@@ -165,6 +165,16 @@ nano /home/pi/.config/lxsession/LXDE-pi/autostart
 @chromium http://localhost/projectname/login.php --start-fullscreen
 ```
 
+### Remote Connection
+``` ssh raspberrypi@raspberrypi.local
+```
+##### (or)
+``` ssh raspberrypi@0.0.0.0
+```
+#### in Run Box
+``` mstsc
+```
+
 ### checking and diagnosis query
 ```sql
 SELECT 
