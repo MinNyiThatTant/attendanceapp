@@ -157,15 +157,7 @@ SUBSYSTEM=="input", ATTRS{idVendor}=="13ba", ATTRS{idProduct}=="0018", MODE="066
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-### (xv) Auto-start Browser (optional)
-```
-mkdir -p /home/pi/.config/lxsession/LXDE-pi/
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
-@chromium --kiosk http://localhost/projectname/login.php
-@chromium http://localhost/projectname/login.php --start-fullscreen
-```
-
-### Remote Connection
+### (xv) Remote Connection
 ```
 ssh raspberrypi@raspberrypi.local
 ```
@@ -176,6 +168,14 @@ ssh raspberrypi@0.0.0.0
 #### in Run Box
 ```
 mstsc
+```
+
+### (xvi) Auto-start Browser (optional)
+```
+mkdir -p /home/pi/.config/lxsession/LXDE-pi/
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+@chromium --kiosk http://localhost/projectname/login.php
+@chromium http://localhost/projectname/login.php --start-fullscreen
 ```
 
 ### checking and diagnosis query
