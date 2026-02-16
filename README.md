@@ -45,6 +45,7 @@ $dbname = "attendance_db";
 ```
 
 ### 5. Raspberry Pi Apache Server Configuration
+### Firstly, you need to install/write Debian OS in your raspberry pi
 
 ##### **hostname** : `raspberrypi`
 ##### **username** : `raspberrypi`
