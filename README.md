@@ -85,8 +85,8 @@ sudo apt install phpmyadmin -y
 ```
 
 ### default login
-username : root
-pass     : admin
+**username** : `root`
+**pass**     : `admin`
 
 ### (vii) Set Directory Permissions
 ```
