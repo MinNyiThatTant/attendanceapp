@@ -10,9 +10,15 @@ HTML, CSS, JavaScript, PHP နှင့် MySQL တို့ကို အသု
 * User Authentication (Login/Logout)။
 
 ## Techniques
+# Softwares
+
 * **Frontend:** HTML5, CSS3, JavaScript
 * **Backend:** PHP (Native) with xampp
 * **Database:** MySQL
+
+# Hardwares
+* **Raspberrypi Model-B**
+* **RFID(MFRC522)**
 
 ### (i) System Configuration
 ```bash
