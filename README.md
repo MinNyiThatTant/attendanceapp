@@ -161,3 +161,7 @@ WHERE s.roll_no LIKE '%MC%'
   AND s.current_semester COLLATE utf8mb4_general_ci = sd.term COLLATE utf8mb4_general_ci 
 LIMIT 0, 25;
 ```
+
+## License
+
+This project is developed for educational and research purposes.
