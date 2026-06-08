@@ -88,7 +88,7 @@ function getDuration($start, $end)
 <body>
     <div class="container">
         <header class="attendance-header">
-            <h1>🖥️ Computer <span style="color:#4f46e5">Lab</span></h1>
+            <h1>Computer <span style="color:#4f46e5">Lab</span></h1>
             <div style="display:flex; gap:10px;">
                 <form method="GET" style="display:flex; gap:5px;">
                     <input type="text" name="search" placeholder="Search Student..." value="<?= htmlspecialchars($search) ?>" style="padding:10px; border-radius:5px; border:1px solid #ddd;">

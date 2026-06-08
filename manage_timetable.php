@@ -196,7 +196,7 @@ $timetables = $db->conn->query("SELECT t.*, m.title as major_name, c.title as co
 <body>
     <div class="container">
         <header class="attendance-header">
-            <h1>📅 Manage <span style="color:#4f46e5">Timetable</span></h1>
+            <h1>Manage <span style="color:#4f46e5">Timetable</span></h1>
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
 

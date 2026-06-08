@@ -12,7 +12,7 @@
 <body>
     <div class="container" style="text-align:center; margin-top:50px;">
         <div class="card" style="padding:50px; border: 3px solid #4f46e5;">
-            <h1>🖥️ Computer Lab <span style="color:#4f46e5">Access Control</span></h1>
+            <h1>Computer Lab <span style="color:#4f46e5">Access Control</span></h1>
             <p>Please scan your RFID card to Check-in / Check-out</p>
 
             <div style="margin: 30px 0;">

@@ -194,7 +194,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
 <body>
     <div class="container">
         <header class="attendance-header">
-            <h1>👨‍🎓 Manage <span style="color:#4f46e5">Students</span></h1>
+            <h1>Manage <span style="color:#4f46e5">Students</span></h1>
             <div class="search-group" style="display:flex; gap:10px; align-items:center;">
                 <form method="GET" style="display:flex; gap:5px;">
                     <input type="text" name="search" placeholder="Search..." value="<?= htmlspecialchars($search) ?>" class="input-box" style="margin:0; width:180px;">
@@ -205,7 +205,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         </header>
 
         <div class="card" style="margin-bottom:20px; border: 2px dashed #4f46e5; background: #f5f3ff;">
-            <h3 style="margin-top:0;">📤 Quick Import (CSV)</h3>
+            <h3 style="margin-top:0;">Quick Import (CSV)</h3>
             <form method="POST" enctype="multipart/form-data" style="display:flex; align-items:center; gap:15px;">
                 <input type="file" name="student_file" accept=".csv" required>
                 <button type="submit" name="import_csv" class="save-btn">Upload CSV</button>
@@ -213,7 +213,7 @@ $semesters = $db->conn->query("SELECT DISTINCT term FROM session_details")->fetc
         </div>
 
         <div class="card">
-            <h3><?= $edit_student ? '📝 Edit Student' : '🙎‍♂️ Add New Student' ?></h3>
+            <h3><?= $edit_student ? 'Edit Student' : 'Add New Student' ?></h3>
             <form method="POST" enctype="multipart/form-data" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px;">
                 <input type="hidden" name="student_id" value="<?= $edit_student['id'] ?? '' ?>">
                 <input type="hidden" name="old_photo" value="<?= $edit_student['photo'] ?? 'default.png' ?>">

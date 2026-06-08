@@ -130,7 +130,7 @@ if ($f_course) {
 
 <div class="container">
     <header class="attendance-header" style="display:flex; justify-content: space-between; align-items: center; margin: 20px 0;">
-        <h1>📊 Attendance <span style="color:#4f46e5">Report</span></h1>
+        <h1>Attendance <span style="color:#4f46e5">Report</span></h1>
         <div style="display: flex; gap: 10px;">
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:#94a3b8;"><i class="fa-solid fa-house"></i> Dashboard</a>
         </div>

@@ -137,7 +137,7 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
 
     <div class="leave-container">
         <header class="attendance-header">
-            <h2>🏥 Manage <span style="color:#4f46e5">Leaves</span></h2>
+            <h2>Manage <span style="color:#4f46e5">Leaves</span></h2>
             <a href="dashboard.php" class="class-btn" style="text-decoration:none; background:lightblue;"><i class="fa-solid fa-house"></i> Back To Dashboard</a>
         </header>
 
@@ -152,7 +152,7 @@ $leaves = $db->conn->query("SELECT l.*, s.name, s.roll_no FROM student_leaves l 
         <?php endif; ?>
 
         <div class="card" style="padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: white;">
-            <h3 style="margin-top:0; margin-bottom:20px;"><?= $edit_data ? "✏️ Edit Leave Record" : "📋 Record New Leave" ?></h3>
+            <h3 style="margin-top:0; margin-bottom:20px;"><?= $edit_data ? "✏️ Edit Leave Record" : "  Record New Leave" ?></h3>
             <form method="POST">
                 <input type="hidden" name="leave_id" value="<?= $edit_data['id'] ?? '' ?>">
                 <div class="form-grid">
