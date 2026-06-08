@@ -1,6 +1,10 @@
 # Student Attendance Management System Using Raspberry Pi [SAMS]
 ---
 
+IoT-Based Student Attendance Management System using Raspberry Pi, RFID Card Reading, Web-Based Management, and Real-Time Attendance Tracking.
+
+---
+
 ### Login Page
 ![Login Page](screenshots/login.PNG)
 
@@ -36,12 +40,6 @@
 
 ### System Architecture
 ![System Architecture](screenshots/system_architecture.jpg)
-
----
-
-# Student Attendance Management System Using Raspberry Pi (SAMS)
-
-> IoT-Based Student Attendance Management System using Raspberry Pi, RFID Card Reading, Web-Based Management, and Real-Time Attendance Tracking.
 
 ---
 
