@@ -61,7 +61,7 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 ### 1. Student Registration
 
 * Admin/Teacher က Student Details ကို Web Dashboard မှ ထည့်သွင်းနိုင်ပါတယ်။
-* ကျောင်းသားတစ်ဦးချင်းစီအတွက် Roll No, Name, Major, Current Semester နှင့် RFID Card ID သတ်မှတ်ပေးရပါမယ်။
+* ကျောင်းသားတစ်ဦးချင်းစီအတွက် Roll No, Name, Major, Current Semester နှင့် RFID Card ID သတ်မှတ်ပေးရပါမယ်။ ဒီနေရာမှာ csv file အနေနှင့် ထည့်လို့လည်း ရပါတယ်။
 
 ### 2. Course Management
 
