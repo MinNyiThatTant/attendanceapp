@@ -1,17 +1,13 @@
 # Student Attendance Management System Using Raspberry Pi
 ## [SAMS]
 
-HTML, CSS, JavaScript, PHP နှင့် MySQL တို့ကို အသုံးပြု၍ ရေးသားထားသော System တစ်ခု ဖြစ်သည်။
-
 ---
-
-## System Screenshots
 
 ### Login Page
 ![Login Page](screenshots/login.PNG)
 
 ### Dashboard
-![Dashboard](screenshots/dashboard.PNG)
+![Dashboard](screenshots/Dashboard.PNG)
 
 ### Manage Majors
 ![Manage Majors](screenshots/majors.PNG)
