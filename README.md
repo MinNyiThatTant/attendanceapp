@@ -227,41 +227,11 @@ Admin/Teacher ဘက်မှ ကျောင်းသားစာရင်း�
 
 ---
 
-## Installation Guide
-
-### 1. Download Project
-
-Download Project from GitHub
-Go → Code → Download ZIP and extract folder
-
-### 2. Transfer Project Folder
-
-Download ရလာသော `attendanceapp` Folder ကို XAMPP ထည့်ထားသော လမ်းကြောင်းအောက်ရှိ `htdocs` ထဲသို့ ကူးထည့်ပါ။
-
-
-
-### 3. Database Setup
-
-1. **XAMPP Control Panel** ကိုဖွင့်ပြီး **Apache** နှင့် **MySQL** ကို Start လုပ်ပါ။
-2. Browser တွင် `localhost/phpmyadmin` သို့သွားပါ။
-3. Database အသစ်တစ်ခု တည်ဆောက်ပါ → `attendance_db`
-4. Import tab သို့သွား၍ `database/attendance_db.sql` ဖိုင်ကို Import လုပ်ပါ။
-
-### 4. Database Connection Configuration
-
-`config/db_connect.php` ဖိုင်တွင် အောက်ပါအတိုင်း Host, User, Password နှင့် Database အမည်များ မှန်/မမှန် စစ်ဆေးပါ။
-
-```php
-<?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "attendance_db";
-?>
-```
-
 ### License
 
 This project is developed for educational and research purposes only.
 All Rights Reserved.
 
+The source code, documentation, design, and related materials များကို လေ့လာရန်အတွက် ကြည့်ရှုခွင့်ရှိသည်။
+မည်သည့်အပိုင်းကိုမျှ မိတ္တူကူးခြင်း၊ ပြင်ဆင်ခြင်း၊ ပြန်လည်ဖြန့်ချိခြင်း၊ ထုတ်ဝေခြင်း သို့မဟုတ် စီးပွားဖြစ်အသုံးပြုခြင်း မပြုရ။
+ခွင့်ပြုချက်မရှိဘဲ အသုံးပြုပါက တားမြစ်သည်။
