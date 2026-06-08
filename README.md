@@ -13,35 +13,35 @@ HTML, CSS, JavaScript, PHP နှင့် MySQL တို့ကို အသု
 ### Dashboard
 ![Dashboard](screenshots/dashboard.PNG)
 
-### Student Management
-![Student Management](screenshots/student_management.PNG)
+### Manage Majors
+![Manage Majors](screenshots/majors.PNG)
 
-### Add / Edit Student
-![Add Edit Student](screenshots/add_student.PNG)
+### Manage Courses
+![Manage Courses](screenshots/courses.PNG)
 
-### Course Management
-![Course Management](screenshots/course_management.PNG)
+### Manage Students
+![Manage Students](screenshots/manage_student.PNG)
 
-### Add / Edit Course
-![Add Edit Course](screenshots/add_course.PNG)
+### Manage Course Registration
+![Manage Course Registration](screenshots/course_registration.PNG)
 
-### Take Attendance
-![Take Attendance](screenshots/take_attendance.PNG)
+### Manage Reports
+![Manage Reports](screenshots/report.PNG)
 
-### Daily Attendance Report
-![Daily Report](screenshots/daily_report.PNG)
+### Manage Timetable
+![Manage Timetable](screenshots/manage_timetable.PNG)
 
-### Monthly Attendance Report
-![Monthly Report](screenshots/monthly_report.PNG)
+### Manage Holidays
+![Manage Holidays](screenshots/holidays.PNG)
 
-### RFID Card Reading
-![RFID Reading](screenshots/rfid_reading.PNG)
+### Manage Leave
+![Manage Leave](screenshots/manage_leaves.PNG)
 
-### Circuit Diagram
-![Circuit Diagram](screenshots/circuit_diagram.jpg)
+### Computer_Lab_Usage_Record
+![Computer_Lab_Usage_Record](screenshots/computer_usage.PNG)
 
-### Hardware Setup
-![Hardware Setup](screenshots/hardware_setup.PNG)
+### System Architecture
+![System Architecture](screenshots/system_architecture.jpg)
 
 ---
 
