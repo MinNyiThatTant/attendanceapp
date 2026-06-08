@@ -10,10 +10,10 @@
 ![Dashboard](screenshots/Dashboard.PNG)
 
 ### Manage Majors
-![Manage Majors](screenshots/majors.PNG)
+![Manage Majors](screenshots/manage_majors.PNG)
 
 ### Manage Courses
-![Manage Courses](screenshots/courses.PNG)
+![Manage Courses](screenshots/manage_courses.PNG)
 
 ### Manage Students
 ![Manage Students](screenshots/manage_student.PNG)
