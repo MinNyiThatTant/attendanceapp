@@ -60,12 +60,12 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 
 ### 1. Student Registration
 
-* Admin/Teacher က Student Details ကို Web Dashboard မှ ထည့်သွင်းနိုင်ပါတယ်။
+* Admin က Student Details ကို Web Dashboard မှ ထည့်သွင်းနိုင်ပါတယ်။
 * ကျောင်းသားတစ်ဦးချင်းစီအတွက် Roll No, Name, Major, Current Semester နှင့် RFID Card ID သတ်မှတ်ပေးရပါမယ်။ ဒီနေရာမှာ csv file အနေနှင့် ထည့်လို့လည်း ရပါတယ်။
 
 ### 2. Course Management
 
-* Admin/Teacher က Course များကို ထည့်သွင်းနိုင်ပါတယ်။
+* Admin က Course များကို ထည့်သွင်းနိုင်ပါတယ်။
 * Course ခေါင်းစဉ်၊ Session/Term နှင့် Major အတိုင်း သတ်မှတ်ပေးရပါမယ်။
 
 ### 3. Course Assignment
@@ -80,12 +80,12 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 
 ### 5. Attendance Report
 
-* Admin/Teacher က Web Dashboard မှ Daily Report သို့မဟုတ် Monthly Report ကို ပြန်လည်ကြည့်ရှုနိုင်ပါတယ်။
+* Admin က Web Dashboard မှ Daily Report သို့မဟုတ် Monthly Report ကို ပြန်လည်ကြည့်ရှုနိုင်ပါတယ်။
 * ကျောင်းသားတစ်ဦးချင်းစီ၏ Attendance ကို Filter လုပ်၍ ကြည့်ရှုနိုင်ပါတယ်။
 
 ---
 
-## Admin / Teacher Features
+## Admin Features
 
 ### Student Management
 
@@ -112,11 +112,8 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 
 * View Daily Attendance
 * View Monthly Attendance
-* Filter by Student
-* Filter by Course
-* Filter by Date Range
 
-### Report Generation
+### Report 
 
 * Daily Attendance Report
 * Monthly Attendance Report
@@ -126,8 +123,8 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 ### User Authentication
 
 * Admin Login
-* Teacher Login
-* Secure Logout
+* Teacher Login ( Coming...)
+* Student Login ( Coming...)
 
 ---
 
@@ -135,17 +132,14 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 
 * RFID Card Scanning
 * Automatic Attendance Marking
-* View Personal Attendance (if student access is enabled)
 
 ---
 
 ## Hardware Features
 
-* RFID Card Reading (RC522)
+* RFID Card Reader (RC522)
 * Real-Time Attendance Marking
-* LCD Display for Status Messages
-* Buzzer Notification for Successful/Failed Scan
-* LED Indicators
+* Sound noti for Attendance Status 
 
 ---
 
@@ -160,66 +154,14 @@ Admin ဘက်မှ ကျောင်းသားစာရင်းမျာ�
 * JavaScript
 * Bootstrap
 * AJAX
-* XAMPP / Apache
+* XAMPP / Apache (web server)
+* python (for UID)
 
 ### Hardware
 
 * Raspberry Pi (3B+ / 4)
 * RFID Module (RC522)
-* 16x2 LCD Display
-* Buzzer
-* LED (Red/Green)
-* Jumper Wires
-* Breadboard
-
----
-
-## Database Structure
-
-### Major Details Table (major_details)
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT | Primary Key |
-| title | VARCHAR | Major Name (e.g., Computer Science) |
-
-### Student Details Table (student_details)
-| Column | Type | Description |
-|--------|------|-------------|
-| roll_no | VARCHAR | Primary Key |
-| name | VARCHAR | Student Name |
-| major_id | INT | Foreign Key (major_details.id) |
-| current_semester | VARCHAR | Current Semester (e.g., 1, 2, 3) |
-| rfid_uid | VARCHAR | RFID Card Unique ID |
-
-### Session Details Table (session_details)
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT | Primary Key |
-| title | VARCHAR | Session Name |
-| term | VARCHAR | Term/Semester |
-
-### Course Details Table (course_details)
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT | Primary Key |
-| title | VARCHAR | Course Name |
-| session_id | INT | Foreign Key (session_details.id) |
-
-### Course Assignments Table (course_assignments)
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT | Primary Key |
-| major_id | INT | Foreign Key (major_details.id) |
-| course_id | INT | Foreign Key (course_details.id) |
-
-### Attendance Table (attendance)
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT | Primary Key |
-| roll_no | VARCHAR | Foreign Key (student_details.roll_no) |
-| course_id | INT | Foreign Key (course_details.id) |
-| date | DATE | Attendance Date |
-| status | ENUM | Present / Absent |
+* Laptop (admin can manage with wifi)
 
 ---
 
