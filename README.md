@@ -1,13 +1,11 @@
-# Student Attendance Management System Using Raspberry Pi
-## [SAMS]
-
+# Student Attendance Management System Using Raspberry Pi [SAMS]
 ---
 
 ### Login Page
 ![Login Page](screenshots/login.PNG)
 
 ### Dashboard
-![Dashboard](screenshots/Dashboard.PNG)
+![Dashboard](screenshots/Dash-board.PNG)
 
 ### Manage Majors
 ![Manage Majors](screenshots/manage_majors.PNG)
